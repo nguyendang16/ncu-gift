@@ -1,0 +1,17 @@
+backend/.venv/
+__pycache__/
+.pytest_cache/
+data/*.db*
+data/uploads/*
+!data/uploads/.gitkeep
+frontend/node_modules/
+frontend/dist/
+.claude/
+
+backend/.env
+.env
+
+# internal working documents and OS files
+docs/*INTERNAL*
+.DS_Store
+*.pyc

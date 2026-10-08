@@ -1,0 +1,5686 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "NCU GIFT API",
+    "description": "MVP running on SYNTHETIC mock data. Nothing here is real donor information.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meta": {
+      "get": {
+        "summary": "Meta",
+        "operationId": "meta_api_meta_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/datasets": {
+      "get": {
+        "summary": "Datasets",
+        "operationId": "datasets_api_datasets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DatasetOut"
+                  },
+                  "type": "array",
+                  "title": "Response Datasets Api Datasets Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upload/preview": {
+      "post": {
+        "summary": "Upload Preview",
+        "operationId": "upload_preview_api_upload_preview_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_preview_api_upload_preview_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upload/confirm": {
+      "post": {
+        "summary": "Upload Confirm",
+        "operationId": "upload_confirm_api_upload_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/capability": {
+      "get": {
+        "summary": "Capability",
+        "operationId": "capability_api_capability_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Capability"
+                  },
+                  "title": "Response Capability Api Capability Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/review": {
+      "get": {
+        "summary": "Review",
+        "operationId": "review_api_review_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewOut"
+                  },
+                  "title": "Response Review Api Review Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/review/{item_id}/resolve": {
+      "post": {
+        "summary": "Resolve",
+        "operationId": "resolve_api_review__item_id__resolve_post",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/review/accept-suggestions": {
+      "post": {
+        "summary": "Accept Suggestions",
+        "description": "Confirm every pending purpose suggestion at or above `min_confidence` in one go (a person still pressed the button).",
+        "operationId": "accept_suggestions_api_review_accept_suggestions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reference": {
+      "get": {
+        "summary": "Reference Status",
+        "operationId": "reference_status_api_reference_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefStatus"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Reference Upload",
+        "operationId": "reference_upload_api_reference_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_reference_upload_api_reference_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reference/apply": {
+      "post": {
+        "summary": "Reference Apply",
+        "operationId": "reference_apply_api_reference_apply_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyRefIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplyRefOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/extras/solicited": {
+      "get": {
+        "summary": "Solicited",
+        "operationId": "solicited_api_extras_solicited_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitedOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/samples/{name}": {
+      "get": {
+        "summary": "Sample",
+        "description": "Synthetic sample workbooks for trying the upload flow.",
+        "operationId": "sample_api_samples__name__get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trend": {
+      "get": {
+        "summary": "Trend",
+        "operationId": "trend_api_trend_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "exceptional_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exceptional Threshold"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrendRow"
+                  },
+                  "title": "Response Trend Api Trend Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/overview": {
+      "get": {
+        "summary": "Overview",
+        "operationId": "overview_api_overview_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all",
+              "title": "Scope"
+            }
+          },
+          {
+            "name": "exceptional_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exceptional Threshold"
+            }
+          },
+          {
+            "name": "large_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Large Threshold"
+            }
+          },
+          {
+            "name": "return_definition",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "retained",
+              "title": "Return Definition"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/journey": {
+      "get": {
+        "summary": "Journey",
+        "operationId": "journey_api_journey_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JourneyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/concentration": {
+      "get": {
+        "summary": "Concentration",
+        "operationId": "concentration_api_concentration_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "name": "exceptional_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exceptional Threshold"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConcentrationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bridge": {
+      "get": {
+        "summary": "Bridge",
+        "operationId": "bridge_api_bridge_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "name": "exceptional_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exceptional Threshold"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BridgeOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/seasonality": {
+      "get": {
+        "summary": "Seasonality",
+        "operationId": "seasonality_api_seasonality_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "exceptional_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exceptional Threshold"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeasonOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/purpose-tree": {
+      "get": {
+        "summary": "Purpose Tree",
+        "operationId": "purpose_tree_api_purpose_tree_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "regular",
+              "title": "Scope"
+            }
+          },
+          {
+            "name": "exceptional_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exceptional Threshold"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreeNode"
+                  },
+                  "title": "Response Purpose Tree Api Purpose Tree Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/highlights": {
+      "get": {
+        "summary": "Highlights",
+        "operationId": "highlights_api_highlights_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "name": "exceptional_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exceptional Threshold"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Highlight"
+                  },
+                  "title": "Response Highlights Api Highlights Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/risk": {
+      "get": {
+        "summary": "Risk List",
+        "operationId": "risk_list_api_risk_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "top_n",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Top N"
+            }
+          },
+          {
+            "name": "cap",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 20000000,
+              "title": "Cap"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matching/targets": {
+      "get": {
+        "summary": "Targets",
+        "operationId": "targets_api_matching_targets_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Target"
+                  },
+                  "title": "Response Targets Api Matching Targets Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matching/rank": {
+      "get": {
+        "summary": "Rank",
+        "operationId": "rank_api_matching_rank_get",
+        "parameters": [
+          {
+            "name": "target",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target"
+            }
+          },
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "n",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 25,
+              "title": "N"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RankOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matching/eval": {
+      "get": {
+        "summary": "Evaluate",
+        "operationId": "evaluate_api_matching_eval_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvalOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenario": {
+      "post": {
+        "summary": "Scenario",
+        "operationId": "scenario_api_scenario_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/briefs": {
+      "post": {
+        "summary": "Create Brief",
+        "operationId": "create_brief_api_briefs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BriefIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriefOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/briefs/{brief_id}/verify": {
+      "post": {
+        "summary": "Verify Brief",
+        "operationId": "verify_brief_api_briefs__brief_id__verify_post",
+        "parameters": [
+          {
+            "name": "brief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Brief Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriefOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/roll": {
+      "get": {
+        "summary": "Get Roll",
+        "operationId": "get_roll_api_roll_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RollOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/roll/leak-test": {
+      "get": {
+        "summary": "Leak",
+        "operationId": "leak_api_roll_leak_test_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeakOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/status": {
+      "get": {
+        "summary": "Status",
+        "operationId": "status_api_ai_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/settings": {
+      "put": {
+        "summary": "Update Settings",
+        "operationId": "update_settings_api_ai_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiSettingsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/test": {
+      "post": {
+        "summary": "Test",
+        "operationId": "test_api_ai_test_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiTestOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/ask": {
+      "post": {
+        "summary": "Ask",
+        "operationId": "ask_api_ai_ask_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/agent": {
+      "post": {
+        "summary": "Agent",
+        "operationId": "agent_api_ai_agent_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/insights": {
+      "post": {
+        "summary": "Insights",
+        "operationId": "insights_api_ai_insights_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InsightsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsightsOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/map-columns": {
+      "post": {
+        "summary": "Map Columns",
+        "operationId": "map_columns_api_ai_map_columns_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MapIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/classify": {
+      "post": {
+        "summary": "Classify",
+        "operationId": "classify_api_ai_classify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassifyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassifyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/log": {
+      "get": {
+        "summary": "Log",
+        "operationId": "log_api_ai_log_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AiCallRow"
+                  },
+                  "title": "Response Log Api Ai Log Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/log/{call_id}": {
+      "get": {
+        "summary": "Log Detail",
+        "operationId": "log_detail_api_ai_log__call_id__get",
+        "parameters": [
+          {
+            "name": "call_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Call Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiCallDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AcceptIn": {
+        "properties": {
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Id"
+          },
+          "min_confidence": {
+            "type": "number",
+            "title": "Min Confidence",
+            "default": 0.5
+          }
+        },
+        "type": "object",
+        "title": "AcceptIn"
+      },
+      "AcceptOut": {
+        "properties": {
+          "accepted": {
+            "type": "integer",
+            "title": "Accepted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accepted"
+        ],
+        "title": "AcceptOut"
+      },
+      "AgentOut": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/NumberCheck"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/AgentStep"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "demo": {
+            "type": "boolean",
+            "title": "Demo"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          },
+          "call_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Call Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "verification",
+          "steps",
+          "model",
+          "demo",
+          "cost_usd",
+          "call_ids"
+        ],
+        "title": "AgentOut"
+      },
+      "AgentStep": {
+        "properties": {
+          "n": {
+            "type": "integer",
+            "title": "N"
+          },
+          "tool": {
+            "type": "string",
+            "title": "Tool"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "args_text": {
+            "type": "string",
+            "title": "Args Text",
+            "default": ""
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "default": ""
+          },
+          "table": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentTable"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link"
+          },
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          }
+        },
+        "type": "object",
+        "required": [
+          "n",
+          "tool",
+          "title",
+          "ok"
+        ],
+        "title": "AgentStep"
+      },
+      "AgentTable": {
+        "properties": {
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Columns"
+          },
+          "rows": {
+            "items": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Rows"
+          }
+        },
+        "type": "object",
+        "required": [
+          "columns",
+          "rows"
+        ],
+        "title": "AgentTable"
+      },
+      "AiCallDetail": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "ts": {
+            "type": "string",
+            "title": "Ts"
+          },
+          "feature": {
+            "type": "string",
+            "title": "Feature"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "demo": {
+            "type": "boolean",
+            "title": "Demo"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms"
+          },
+          "prompt_tokens": {
+            "type": "integer",
+            "title": "Prompt Tokens"
+          },
+          "completion_tokens": {
+            "type": "integer",
+            "title": "Completion Tokens"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          },
+          "verified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "payload_json": {
+            "type": "string",
+            "title": "Payload Json"
+          },
+          "response_excerpt": {
+            "type": "string",
+            "title": "Response Excerpt"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "ts",
+          "feature",
+          "model",
+          "status",
+          "demo",
+          "duration_ms",
+          "prompt_tokens",
+          "completion_tokens",
+          "cost_usd",
+          "verified",
+          "error",
+          "payload_json",
+          "response_excerpt"
+        ],
+        "title": "AiCallDetail"
+      },
+      "AiCallRow": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "ts": {
+            "type": "string",
+            "title": "Ts"
+          },
+          "feature": {
+            "type": "string",
+            "title": "Feature"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "demo": {
+            "type": "boolean",
+            "title": "Demo"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms"
+          },
+          "prompt_tokens": {
+            "type": "integer",
+            "title": "Prompt Tokens"
+          },
+          "completion_tokens": {
+            "type": "integer",
+            "title": "Completion Tokens"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          },
+          "verified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "ts",
+          "feature",
+          "model",
+          "status",
+          "demo",
+          "duration_ms",
+          "prompt_tokens",
+          "completion_tokens",
+          "cost_usd",
+          "verified",
+          "error"
+        ],
+        "title": "AiCallRow"
+      },
+      "AiSettingsIn": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "share_project_names": {
+            "type": "boolean",
+            "title": "Share Project Names"
+          },
+          "share_column_headers": {
+            "type": "boolean",
+            "title": "Share Column Headers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "share_project_names",
+          "share_column_headers"
+        ],
+        "title": "AiSettingsIn"
+      },
+      "AiStatus": {
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          },
+          "demo": {
+            "type": "boolean",
+            "title": "Demo"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "reasoning_effort": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Effort"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "share_project_names": {
+            "type": "boolean",
+            "title": "Share Project Names"
+          },
+          "share_column_headers": {
+            "type": "boolean",
+            "title": "Share Column Headers"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          },
+          "daily_cap": {
+            "type": "integer",
+            "title": "Daily Cap"
+          },
+          "calls_today": {
+            "type": "integer",
+            "title": "Calls Today"
+          },
+          "cost_today_usd": {
+            "type": "number",
+            "title": "Cost Today Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "configured",
+          "demo",
+          "model",
+          "reasoning_effort",
+          "enabled",
+          "share_project_names",
+          "share_column_headers",
+          "ready",
+          "daily_cap",
+          "calls_today",
+          "cost_today_usd"
+        ],
+        "title": "AiStatus"
+      },
+      "AiTestOut": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "latency_ms": {
+            "type": "integer",
+            "title": "Latency Ms"
+          },
+          "reply": {
+            "type": "string",
+            "title": "Reply"
+          },
+          "demo": {
+            "type": "boolean",
+            "title": "Demo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok",
+          "model",
+          "latency_ms",
+          "reply",
+          "demo"
+        ],
+        "title": "AiTestOut"
+      },
+      "AiTurn": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question",
+          "answer"
+        ],
+        "title": "AiTurn"
+      },
+      "Alt": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "confidence"
+        ],
+        "title": "Alt"
+      },
+      "ApplyRefIn": {
+        "properties": {
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Id"
+          }
+        },
+        "type": "object",
+        "title": "ApplyRefIn"
+      },
+      "ApplyRefOut": {
+        "properties": {
+          "rows_updated": {
+            "type": "integer",
+            "title": "Rows Updated"
+          },
+          "review_items": {
+            "type": "integer",
+            "title": "Review Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rows_updated",
+          "review_items"
+        ],
+        "title": "ApplyRefOut"
+      },
+      "AskIn": {
+        "properties": {
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Id"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/AiTurn"
+            },
+            "type": "array",
+            "title": "History",
+            "default": []
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          },
+          "exceptional_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exceptional Threshold"
+          },
+          "large_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Large Threshold"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "AskIn"
+      },
+      "AskOut": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "demo": {
+            "type": "boolean",
+            "title": "Demo"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          },
+          "call_id": {
+            "type": "integer",
+            "title": "Call Id"
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/NumberCheck"
+          },
+          "sent": {
+            "type": "string",
+            "title": "Sent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "demo",
+          "cost_usd",
+          "call_id",
+          "answer",
+          "verification",
+          "sent"
+        ],
+        "title": "AskOut"
+      },
+      "Band": {
+        "properties": {
+          "expected": {
+            "type": "number",
+            "title": "Expected"
+          },
+          "low": {
+            "type": "number",
+            "title": "Low"
+          },
+          "high": {
+            "type": "number",
+            "title": "High"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expected",
+          "low",
+          "high"
+        ],
+        "title": "Band"
+      },
+      "Body_reference_upload_api_reference_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_reference_upload_api_reference_post"
+      },
+      "Body_upload_preview_api_upload_preview_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_preview_api_upload_preview_post"
+      },
+      "Breakdown": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "share_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Amount"
+          },
+          "share_count": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "amount",
+          "count",
+          "share_amount",
+          "share_count"
+        ],
+        "title": "Breakdown"
+      },
+      "BridgeOut": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "prev_year": {
+            "type": "integer",
+            "title": "Prev Year"
+          },
+          "start": {
+            "type": "number",
+            "title": "Start"
+          },
+          "end": {
+            "type": "number",
+            "title": "End"
+          },
+          "start_ordinary": {
+            "type": "number",
+            "title": "Start Ordinary"
+          },
+          "end_ordinary": {
+            "type": "number",
+            "title": "End Ordinary"
+          },
+          "exceptional_start": {
+            "type": "number",
+            "title": "Exceptional Start"
+          },
+          "exceptional_end": {
+            "type": "number",
+            "title": "Exceptional End"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/BridgeStep"
+            },
+            "type": "array",
+            "title": "Steps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "year",
+          "prev_year",
+          "start",
+          "end",
+          "start_ordinary",
+          "end_ordinary",
+          "exceptional_start",
+          "exceptional_end",
+          "steps"
+        ],
+        "title": "BridgeOut"
+      },
+      "BridgeStep": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "donors": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Donors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "value"
+        ],
+        "title": "BridgeStep"
+      },
+      "BriefIn": {
+        "properties": {
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Id"
+          },
+          "project": {
+            "type": "string",
+            "title": "Project"
+          },
+          "exceptional_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exceptional Threshold"
+          },
+          "use_ai": {
+            "type": "boolean",
+            "title": "Use Ai",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "project"
+        ],
+        "title": "BriefIn"
+      },
+      "BriefOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "facts": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Facts"
+          },
+          "draft_text": {
+            "type": "string",
+            "title": "Draft Text"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/Verification"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "template"
+          },
+          "ai_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "facts",
+          "draft_text",
+          "verification"
+        ],
+        "title": "BriefOut"
+      },
+      "Candidate": {
+        "properties": {
+          "donor_id": {
+            "type": "string",
+            "title": "Donor Id"
+          },
+          "donor_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Donor Class"
+          },
+          "donor_class_label": {
+            "type": "string",
+            "title": "Donor Class Label"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "last_gift_year": {
+            "type": "integer",
+            "title": "Last Gift Year"
+          },
+          "total_given": {
+            "type": "number",
+            "title": "Total Given"
+          },
+          "anonymous": {
+            "type": "boolean",
+            "title": "Anonymous"
+          },
+          "components": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Components"
+          }
+        },
+        "type": "object",
+        "required": [
+          "donor_id",
+          "donor_class",
+          "donor_class_label",
+          "score",
+          "evidence",
+          "last_gift_year",
+          "total_given",
+          "anonymous",
+          "components"
+        ],
+        "title": "Candidate"
+      },
+      "Capability": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "requires": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Requires"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "status",
+          "reason",
+          "requires",
+          "missing"
+        ],
+        "title": "Capability"
+      },
+      "ClassifyIn": {
+        "properties": {
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Id"
+          },
+          "item_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Item Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_ids"
+        ],
+        "title": "ClassifyIn"
+      },
+      "ClassifyOut": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "demo": {
+            "type": "boolean",
+            "title": "Demo"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          },
+          "call_id": {
+            "type": "integer",
+            "title": "Call Id"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/ClassifySuggestion"
+            },
+            "type": "array",
+            "title": "Suggestions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "demo",
+          "cost_usd",
+          "call_id",
+          "suggestions"
+        ],
+        "title": "ClassifyOut"
+      },
+      "ClassifySuggestion": {
+        "properties": {
+          "item_id": {
+            "type": "integer",
+            "title": "Item Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "label_text": {
+            "type": "string",
+            "title": "Label Text"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_id",
+          "label",
+          "label_text",
+          "confidence"
+        ],
+        "title": "ClassifySuggestion"
+      },
+      "Coef": {
+        "properties": {
+          "feature": {
+            "type": "string",
+            "title": "Feature"
+          },
+          "coef": {
+            "type": "number",
+            "title": "Coef"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feature",
+          "coef"
+        ],
+        "title": "Coef"
+      },
+      "CohortRate": {
+        "properties": {
+          "n": {
+            "type": "integer",
+            "title": "N"
+          },
+          "returned": {
+            "type": "integer",
+            "title": "Returned"
+          },
+          "rate": {
+            "type": "number",
+            "title": "Rate"
+          },
+          "ci_low": {
+            "type": "number",
+            "title": "Ci Low"
+          },
+          "ci_high": {
+            "type": "number",
+            "title": "Ci High"
+          }
+        },
+        "type": "object",
+        "required": [
+          "n",
+          "returned",
+          "rate",
+          "ci_low",
+          "ci_high"
+        ],
+        "title": "CohortRate"
+      },
+      "CohortRow": {
+        "properties": {
+          "cohort": {
+            "type": "string",
+            "title": "Cohort"
+          },
+          "donors": {
+            "type": "integer",
+            "title": "Donors"
+          },
+          "retention_base": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retention Base"
+          },
+          "retention_scenario": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retention Scenario"
+          },
+          "avg_gift": {
+            "type": "number",
+            "title": "Avg Gift"
+          },
+          "expected_base": {
+            "type": "number",
+            "title": "Expected Base"
+          },
+          "expected_scenario": {
+            "type": "number",
+            "title": "Expected Scenario"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cohort",
+          "donors",
+          "retention_base",
+          "retention_scenario",
+          "avg_gift",
+          "expected_base",
+          "expected_scenario"
+        ],
+        "title": "CohortRow"
+      },
+      "ColumnProposal": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "sample": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sample"
+          },
+          "proposed_field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed Field"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "ambiguous": {
+            "type": "boolean",
+            "title": "Ambiguous"
+          },
+          "needs_confirmation": {
+            "type": "boolean",
+            "title": "Needs Confirmation"
+          },
+          "alternatives": {
+            "items": {
+              "$ref": "#/components/schemas/Alt"
+            },
+            "type": "array",
+            "title": "Alternatives"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "sample",
+          "proposed_field",
+          "confidence",
+          "ambiguous",
+          "needs_confirmation",
+          "alternatives"
+        ],
+        "title": "ColumnProposal"
+      },
+      "ConcentrationOut": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "all": {
+            "$ref": "#/components/schemas/ConcentrationSummary"
+          },
+          "ordinary": {
+            "$ref": "#/components/schemas/ConcentrationSummary"
+          },
+          "curve": {
+            "items": {
+              "$ref": "#/components/schemas/CurvePoint"
+            },
+            "type": "array",
+            "title": "Curve"
+          }
+        },
+        "type": "object",
+        "required": [
+          "year",
+          "all",
+          "ordinary",
+          "curve"
+        ],
+        "title": "ConcentrationOut"
+      },
+      "ConcentrationSummary": {
+        "properties": {
+          "n_donors": {
+            "type": "integer",
+            "title": "N Donors"
+          },
+          "top1_donor_share": {
+            "type": "number",
+            "title": "Top1 Donor Share"
+          },
+          "top1pct_share": {
+            "type": "number",
+            "title": "Top1Pct Share"
+          },
+          "top10pct_share": {
+            "type": "number",
+            "title": "Top10Pct Share"
+          },
+          "gini": {
+            "type": "number",
+            "title": "Gini"
+          }
+        },
+        "type": "object",
+        "required": [
+          "n_donors",
+          "top1_donor_share",
+          "top1pct_share",
+          "top10pct_share",
+          "gini"
+        ],
+        "title": "ConcentrationSummary"
+      },
+      "ConfirmIn": {
+        "properties": {
+          "upload_id": {
+            "type": "string",
+            "title": "Upload Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "mapping": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Mapping"
+          }
+        },
+        "type": "object",
+        "required": [
+          "upload_id",
+          "name",
+          "mapping"
+        ],
+        "title": "ConfirmIn"
+      },
+      "ConfirmOut": {
+        "properties": {
+          "dataset_id": {
+            "type": "integer",
+            "title": "Dataset Id"
+          },
+          "n_rows": {
+            "type": "integer",
+            "title": "N Rows"
+          },
+          "review_items": {
+            "type": "integer",
+            "title": "Review Items"
+          },
+          "capability": {
+            "items": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "type": "array",
+            "title": "Capability"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dataset_id",
+          "n_rows",
+          "review_items",
+          "capability"
+        ],
+        "title": "ConfirmOut"
+      },
+      "CurvePoint": {
+        "properties": {
+          "pct": {
+            "type": "number",
+            "title": "Pct"
+          },
+          "all": {
+            "type": "number",
+            "title": "All"
+          },
+          "ordinary": {
+            "type": "number",
+            "title": "Ordinary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pct",
+          "all",
+          "ordinary"
+        ],
+        "title": "CurvePoint"
+      },
+      "DatasetOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "is_mock": {
+            "type": "boolean",
+            "title": "Is Mock"
+          },
+          "n_rows": {
+            "type": "integer",
+            "title": "N Rows"
+          },
+          "years": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Years"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "mapped_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Mapped Fields"
+          },
+          "extra_columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Extra Columns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "is_mock",
+          "n_rows",
+          "years",
+          "created_at",
+          "mapped_fields",
+          "extra_columns"
+        ],
+        "title": "DatasetOut"
+      },
+      "EvalK": {
+        "properties": {
+          "k": {
+            "type": "integer",
+            "title": "K"
+          },
+          "model": {
+            "type": "number",
+            "title": "Model"
+          },
+          "model_ci_low": {
+            "type": "number",
+            "title": "Model Ci Low"
+          },
+          "model_ci_high": {
+            "type": "number",
+            "title": "Model Ci High"
+          },
+          "lastyear": {
+            "type": "number",
+            "title": "Lastyear"
+          },
+          "lastyear_ci_low": {
+            "type": "number",
+            "title": "Lastyear Ci Low"
+          },
+          "lastyear_ci_high": {
+            "type": "number",
+            "title": "Lastyear Ci High"
+          },
+          "popularity": {
+            "type": "number",
+            "title": "Popularity"
+          },
+          "popularity_ci_low": {
+            "type": "number",
+            "title": "Popularity Ci Low"
+          },
+          "popularity_ci_high": {
+            "type": "number",
+            "title": "Popularity Ci High"
+          },
+          "random": {
+            "type": "number",
+            "title": "Random"
+          },
+          "random_ci_low": {
+            "type": "number",
+            "title": "Random Ci Low"
+          },
+          "random_ci_high": {
+            "type": "number",
+            "title": "Random Ci High"
+          }
+        },
+        "type": "object",
+        "required": [
+          "k",
+          "model",
+          "model_ci_low",
+          "model_ci_high",
+          "lastyear",
+          "lastyear_ci_low",
+          "lastyear_ci_high",
+          "popularity",
+          "popularity_ci_low",
+          "popularity_ci_high",
+          "random",
+          "random_ci_low",
+          "random_ci_high"
+        ],
+        "title": "EvalK"
+      },
+      "EvalOut": {
+        "properties": {
+          "history_through": {
+            "type": "integer",
+            "title": "History Through"
+          },
+          "holdout_year": {
+            "type": "integer",
+            "title": "Holdout Year"
+          },
+          "n_candidates": {
+            "type": "integer",
+            "title": "N Candidates"
+          },
+          "n_targets": {
+            "type": "integer",
+            "title": "N Targets"
+          },
+          "by_k": {
+            "items": {
+              "$ref": "#/components/schemas/EvalK"
+            },
+            "type": "array",
+            "title": "By K"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/EvalTarget"
+            },
+            "type": "array",
+            "title": "Targets"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "history_through",
+          "holdout_year",
+          "n_candidates",
+          "n_targets",
+          "by_k",
+          "targets",
+          "notes"
+        ],
+        "title": "EvalOut"
+      },
+      "EvalTarget": {
+        "properties": {
+          "target": {
+            "type": "string",
+            "title": "Target"
+          },
+          "positives": {
+            "type": "integer",
+            "title": "Positives"
+          },
+          "model_p20": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model P20"
+          },
+          "lastyear_p20": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastyear P20"
+          },
+          "random_p20": {
+            "type": "number",
+            "title": "Random P20"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target",
+          "positives",
+          "model_p20",
+          "lastyear_p20",
+          "random_p20"
+        ],
+        "title": "EvalTarget"
+      },
+      "ExceptionalLine": {
+        "properties": {
+          "entered_gift": {
+            "type": "number",
+            "title": "Entered Gift"
+          },
+          "total_if_gift_arrives": {
+            "type": "number",
+            "title": "Total If Gift Arrives"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entered_gift",
+          "total_if_gift_arrives",
+          "note"
+        ],
+        "title": "ExceptionalLine"
+      },
+      "FieldInfo": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "FieldInfo"
+      },
+      "FunnelRow": {
+        "properties": {
+          "cohort_year": {
+            "type": "integer",
+            "title": "Cohort Year"
+          },
+          "next_year": {
+            "type": "integer",
+            "title": "Next Year"
+          },
+          "first_time": {
+            "$ref": "#/components/schemas/CohortRate"
+          },
+          "repeat": {
+            "$ref": "#/components/schemas/CohortRate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cohort_year",
+          "next_year",
+          "first_time",
+          "repeat"
+        ],
+        "title": "FunnelRow"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Highlight": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "tone": {
+            "type": "string",
+            "title": "Tone"
+          },
+          "icon": {
+            "type": "string",
+            "title": "Icon"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "link": {
+            "type": "string",
+            "title": "Link"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tone",
+          "icon",
+          "title",
+          "text",
+          "link"
+        ],
+        "title": "Highlight"
+      },
+      "HistoryRow": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "ordinary": {
+            "type": "number",
+            "title": "Ordinary"
+          },
+          "n_exceptional": {
+            "type": "integer",
+            "title": "N Exceptional"
+          },
+          "exceptional": {
+            "type": "number",
+            "title": "Exceptional"
+          }
+        },
+        "type": "object",
+        "required": [
+          "year",
+          "ordinary",
+          "n_exceptional",
+          "exceptional"
+        ],
+        "title": "HistoryRow"
+      },
+      "InKindEntry": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "item": {
+            "type": "string",
+            "title": "Item"
+          },
+          "project": {
+            "type": "string",
+            "title": "Project"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "item",
+          "project"
+        ],
+        "title": "InKindEntry"
+      },
+      "InsightsIn": {
+        "properties": {
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Id"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          },
+          "exceptional_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exceptional Threshold"
+          },
+          "large_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Large Threshold"
+          }
+        },
+        "type": "object",
+        "title": "InsightsIn"
+      },
+      "InsightsOut": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "demo": {
+            "type": "boolean",
+            "title": "Demo"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          },
+          "call_id": {
+            "type": "integer",
+            "title": "Call Id"
+          },
+          "headline": {
+            "type": "string",
+            "title": "Headline"
+          },
+          "points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/NumberCheck"
+          },
+          "sent": {
+            "type": "string",
+            "title": "Sent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "demo",
+          "cost_usd",
+          "call_id",
+          "headline",
+          "points",
+          "verification",
+          "sent"
+        ],
+        "title": "InsightsOut"
+      },
+      "JourneyOut": {
+        "properties": {
+          "years": {
+            "items": {
+              "$ref": "#/components/schemas/JourneyYear"
+            },
+            "type": "array",
+            "title": "Years"
+          },
+          "funnel": {
+            "items": {
+              "$ref": "#/components/schemas/FunnelRow"
+            },
+            "type": "array",
+            "title": "Funnel"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "years",
+          "funnel",
+          "notes"
+        ],
+        "title": "JourneyOut"
+      },
+      "JourneyYear": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "history_available": {
+            "type": "boolean",
+            "title": "History Available"
+          },
+          "active": {
+            "type": "integer",
+            "title": "Active"
+          },
+          "new": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New"
+          },
+          "retained": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retained"
+          },
+          "reactivated": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reactivated"
+          },
+          "lapsed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lapsed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "year",
+          "history_available",
+          "active",
+          "new",
+          "retained",
+          "reactivated",
+          "lapsed"
+        ],
+        "title": "JourneyYear"
+      },
+      "Kpis": {
+        "properties": {
+          "total": {
+            "type": "number",
+            "title": "Total"
+          },
+          "regular_total": {
+            "type": "number",
+            "title": "Regular Total"
+          },
+          "exceptional_total": {
+            "type": "number",
+            "title": "Exceptional Total"
+          },
+          "n_exceptional": {
+            "type": "integer",
+            "title": "N Exceptional"
+          },
+          "share_exceptional": {
+            "type": "number",
+            "title": "Share Exceptional"
+          },
+          "records": {
+            "type": "integer",
+            "title": "Records"
+          },
+          "in_kind_records": {
+            "type": "integer",
+            "title": "In Kind Records"
+          },
+          "donors": {
+            "type": "integer",
+            "title": "Donors"
+          },
+          "large_gifts": {
+            "type": "integer",
+            "title": "Large Gifts"
+          },
+          "large_gifts_amount": {
+            "type": "number",
+            "title": "Large Gifts Amount"
+          },
+          "total_yoy_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Yoy Pct"
+          },
+          "regular_yoy_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Regular Yoy Pct"
+          },
+          "retained_donors": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retained Donors"
+          },
+          "returning_donors": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Returning Donors"
+          },
+          "repeat_selected": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repeat Selected"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "regular_total",
+          "exceptional_total",
+          "n_exceptional",
+          "share_exceptional",
+          "records",
+          "in_kind_records",
+          "donors",
+          "large_gifts",
+          "large_gifts_amount",
+          "total_yoy_pct",
+          "regular_yoy_pct",
+          "retained_donors",
+          "returning_donors",
+          "repeat_selected"
+        ],
+        "title": "Kpis"
+      },
+      "LeakOut": {
+        "properties": {
+          "anonymous_rows": {
+            "type": "integer",
+            "title": "Anonymous Rows"
+          },
+          "anonymous_rows_unmasked": {
+            "type": "integer",
+            "title": "Anonymous Rows Unmasked"
+          },
+          "fully_anonymous_donors": {
+            "type": "integer",
+            "title": "Fully Anonymous Donors"
+          },
+          "identity_occurrences_in_roll": {
+            "type": "integer",
+            "title": "Identity Occurrences In Roll"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "anonymous_rows",
+          "anonymous_rows_unmasked",
+          "fully_anonymous_donors",
+          "identity_occurrences_in_roll",
+          "passed"
+        ],
+        "title": "LeakOut"
+      },
+      "MapIn": {
+        "properties": {
+          "upload_id": {
+            "type": "string",
+            "title": "Upload Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "upload_id"
+        ],
+        "title": "MapIn"
+      },
+      "MapOut": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "demo": {
+            "type": "boolean",
+            "title": "Demo"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          },
+          "call_id": {
+            "type": "integer",
+            "title": "Call Id"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/MapSuggestion"
+            },
+            "type": "array",
+            "title": "Suggestions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "demo",
+          "cost_usd",
+          "call_id",
+          "suggestions"
+        ],
+        "title": "MapOut"
+      },
+      "MapSuggestion": {
+        "properties": {
+          "column": {
+            "type": "string",
+            "title": "Column"
+          },
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "column",
+          "field",
+          "confidence",
+          "reason"
+        ],
+        "title": "MapSuggestion"
+      },
+      "Meta": {
+        "properties": {
+          "exceptional_threshold": {
+            "type": "number",
+            "title": "Exceptional Threshold"
+          },
+          "large_threshold": {
+            "type": "number",
+            "title": "Large Threshold"
+          },
+          "risk_value_cap": {
+            "type": "number",
+            "title": "Risk Value Cap"
+          },
+          "return_definitions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Return Definitions"
+          },
+          "purpose_labels": {
+            "items": {
+              "$ref": "#/components/schemas/Option"
+            },
+            "type": "array",
+            "title": "Purpose Labels"
+          },
+          "donor_classes": {
+            "items": {
+              "$ref": "#/components/schemas/Option"
+            },
+            "type": "array",
+            "title": "Donor Classes"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldInfo"
+            },
+            "type": "array",
+            "title": "Fields"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exceptional_threshold",
+          "large_threshold",
+          "risk_value_cap",
+          "return_definitions",
+          "purpose_labels",
+          "donor_classes",
+          "fields"
+        ],
+        "title": "Meta"
+      },
+      "MonthRow": {
+        "properties": {
+          "month": {
+            "type": "integer",
+            "title": "Month"
+          },
+          "total": {
+            "type": "number",
+            "title": "Total"
+          },
+          "regular": {
+            "type": "number",
+            "title": "Regular"
+          },
+          "exceptional": {
+            "type": "number",
+            "title": "Exceptional"
+          },
+          "records": {
+            "type": "integer",
+            "title": "Records"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "total",
+          "regular",
+          "exceptional",
+          "records"
+        ],
+        "title": "MonthRow"
+      },
+      "NumberCheck": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "checked": {
+            "type": "integer",
+            "title": "Checked"
+          },
+          "unverified": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unverified"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok",
+          "checked",
+          "unverified"
+        ],
+        "title": "NumberCheck"
+      },
+      "Observed": {
+        "properties": {
+          "first_time_retention": {
+            "$ref": "#/components/schemas/ObservedRate"
+          },
+          "repeat_retention": {
+            "$ref": "#/components/schemas/ObservedRate"
+          },
+          "recurring_retention": {
+            "$ref": "#/components/schemas/ObservedRate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "first_time_retention",
+          "repeat_retention",
+          "recurring_retention"
+        ],
+        "title": "Observed"
+      },
+      "ObservedRate": {
+        "properties": {
+          "k": {
+            "type": "integer",
+            "title": "K"
+          },
+          "n": {
+            "type": "integer",
+            "title": "N"
+          },
+          "rate": {
+            "type": "number",
+            "title": "Rate"
+          },
+          "ci_low": {
+            "type": "number",
+            "title": "Ci Low"
+          },
+          "ci_high": {
+            "type": "number",
+            "title": "Ci High"
+          }
+        },
+        "type": "object",
+        "required": [
+          "k",
+          "n",
+          "rate",
+          "ci_low",
+          "ci_high"
+        ],
+        "title": "ObservedRate"
+      },
+      "Option": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "label"
+        ],
+        "title": "Option"
+      },
+      "OverviewOut": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "prev_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Year"
+          },
+          "years": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Years"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          },
+          "scope_label": {
+            "type": "string",
+            "title": "Scope Label"
+          },
+          "kpis": {
+            "$ref": "#/components/schemas/Kpis"
+          },
+          "monthly": {
+            "items": {
+              "$ref": "#/components/schemas/MonthRow"
+            },
+            "type": "array",
+            "title": "Monthly"
+          },
+          "bands": {
+            "items": {
+              "$ref": "#/components/schemas/Breakdown"
+            },
+            "type": "array",
+            "title": "Bands"
+          },
+          "donor_classes": {
+            "items": {
+              "$ref": "#/components/schemas/Breakdown"
+            },
+            "type": "array",
+            "title": "Donor Classes"
+          },
+          "methods": {
+            "items": {
+              "$ref": "#/components/schemas/Breakdown"
+            },
+            "type": "array",
+            "title": "Methods"
+          },
+          "purpose_groups": {
+            "items": {
+              "$ref": "#/components/schemas/Breakdown"
+            },
+            "type": "array",
+            "title": "Purpose Groups"
+          },
+          "purpose_subs": {
+            "items": {
+              "$ref": "#/components/schemas/Breakdown"
+            },
+            "type": "array",
+            "title": "Purpose Subs"
+          },
+          "colleges": {
+            "items": {
+              "$ref": "#/components/schemas/Breakdown"
+            },
+            "type": "array",
+            "title": "Colleges"
+          },
+          "projects_over_1m": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectTotal"
+            },
+            "type": "array",
+            "title": "Projects Over 1M"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "year",
+          "prev_year",
+          "years",
+          "scope",
+          "scope_label",
+          "kpis",
+          "monthly",
+          "bands",
+          "donor_classes",
+          "methods",
+          "purpose_groups",
+          "purpose_subs",
+          "colleges",
+          "projects_over_1m",
+          "notes"
+        ],
+        "title": "OverviewOut"
+      },
+      "PrecisionAtK": {
+        "properties": {
+          "k": {
+            "type": "integer",
+            "title": "K"
+          },
+          "hits": {
+            "type": "integer",
+            "title": "Hits"
+          },
+          "precision": {
+            "type": "number",
+            "title": "Precision"
+          },
+          "value_captured": {
+            "type": "number",
+            "title": "Value Captured"
+          },
+          "random_expected": {
+            "type": "number",
+            "title": "Random Expected"
+          },
+          "lift_vs_random": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lift Vs Random"
+          }
+        },
+        "type": "object",
+        "required": [
+          "k",
+          "hits",
+          "precision",
+          "value_captured",
+          "random_expected",
+          "lift_vs_random"
+        ],
+        "title": "PrecisionAtK"
+      },
+      "PreviewOut": {
+        "properties": {
+          "upload_id": {
+            "type": "string",
+            "title": "Upload Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "sheets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sheets"
+          },
+          "n_rows": {
+            "type": "integer",
+            "title": "N Rows"
+          },
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnProposal"
+            },
+            "type": "array",
+            "title": "Columns"
+          },
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Fields"
+          },
+          "row_note": {
+            "type": "string",
+            "title": "Row Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "upload_id",
+          "filename",
+          "sheets",
+          "n_rows",
+          "columns",
+          "missing_fields",
+          "row_note"
+        ],
+        "title": "PreviewOut"
+      },
+      "ProjectTotal": {
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "Project"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project",
+          "amount"
+        ],
+        "title": "ProjectTotal"
+      },
+      "RankOut": {
+        "properties": {
+          "target": {
+            "type": "string",
+            "title": "Target"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "as_of_year": {
+            "type": "integer",
+            "title": "As Of Year"
+          },
+          "n_candidates": {
+            "type": "integer",
+            "title": "N Candidates"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/Candidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "weights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Weights"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target",
+          "label",
+          "as_of_year",
+          "n_candidates",
+          "candidates",
+          "weights"
+        ],
+        "title": "RankOut"
+      },
+      "RefStatus": {
+        "properties": {
+          "loaded": {
+            "type": "boolean",
+            "title": "Loaded"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "uploaded_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uploaded At"
+          },
+          "n_projects": {
+            "type": "integer",
+            "title": "N Projects",
+            "default": 0
+          },
+          "annual_by_year": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Annual By Year",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "loaded"
+        ],
+        "title": "RefStatus"
+      },
+      "ResolveIn": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "title": "ResolveIn"
+      },
+      "ReviewOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "raw_value": {
+            "type": "string",
+            "title": "Raw Value"
+          },
+          "proposed_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed Label"
+          },
+          "proposed_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed Text"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "n_rows": {
+            "type": "integer",
+            "title": "N Rows"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "resolved_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Label"
+          },
+          "resolved_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "raw_value",
+          "proposed_label",
+          "proposed_text",
+          "confidence",
+          "n_rows",
+          "status",
+          "resolved_label",
+          "resolved_text"
+        ],
+        "title": "ReviewOut"
+      },
+      "RiskDonor": {
+        "properties": {
+          "donor_id": {
+            "type": "string",
+            "title": "Donor Id"
+          },
+          "donor_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Donor Class"
+          },
+          "donor_class_label": {
+            "type": "string",
+            "title": "Donor Class Label"
+          },
+          "p_lapse": {
+            "type": "number",
+            "title": "P Lapse"
+          },
+          "giving_last_year": {
+            "type": "number",
+            "title": "Giving Last Year"
+          },
+          "value_at_risk": {
+            "type": "number",
+            "title": "Value At Risk"
+          },
+          "anonymous": {
+            "type": "boolean",
+            "title": "Anonymous"
+          },
+          "tenure": {
+            "type": "integer",
+            "title": "Tenure"
+          },
+          "capped": {
+            "type": "boolean",
+            "title": "Capped"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          }
+        },
+        "type": "object",
+        "required": [
+          "donor_id",
+          "donor_class",
+          "donor_class_label",
+          "p_lapse",
+          "giving_last_year",
+          "value_at_risk",
+          "anonymous",
+          "tenure",
+          "capped",
+          "reasons"
+        ],
+        "title": "RiskDonor"
+      },
+      "RiskMetrics": {
+        "properties": {
+          "auc": {
+            "type": "number",
+            "title": "Auc"
+          },
+          "auc_ci_low": {
+            "type": "number",
+            "title": "Auc Ci Low"
+          },
+          "auc_ci_high": {
+            "type": "number",
+            "title": "Auc Ci High"
+          },
+          "train": {
+            "type": "string",
+            "title": "Train"
+          },
+          "test": {
+            "type": "string",
+            "title": "Test"
+          },
+          "n_train": {
+            "type": "integer",
+            "title": "N Train"
+          },
+          "n_test": {
+            "type": "integer",
+            "title": "N Test"
+          },
+          "lapse_rate_train": {
+            "type": "number",
+            "title": "Lapse Rate Train"
+          },
+          "lapse_rate_test": {
+            "type": "number",
+            "title": "Lapse Rate Test"
+          },
+          "precision_at_k": {
+            "items": {
+              "$ref": "#/components/schemas/PrecisionAtK"
+            },
+            "type": "array",
+            "title": "Precision At K"
+          }
+        },
+        "type": "object",
+        "required": [
+          "auc",
+          "auc_ci_low",
+          "auc_ci_high",
+          "train",
+          "test",
+          "n_train",
+          "n_test",
+          "lapse_rate_train",
+          "lapse_rate_test",
+          "precision_at_k"
+        ],
+        "title": "RiskMetrics"
+      },
+      "RiskOut": {
+        "properties": {
+          "scoring_year": {
+            "type": "integer",
+            "title": "Scoring Year"
+          },
+          "next_year": {
+            "type": "integer",
+            "title": "Next Year"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RiskMetrics"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coefficients": {
+            "items": {
+              "$ref": "#/components/schemas/Coef"
+            },
+            "type": "array",
+            "title": "Coefficients"
+          },
+          "donors": {
+            "items": {
+              "$ref": "#/components/schemas/RiskDonor"
+            },
+            "type": "array",
+            "title": "Donors"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/RiskPoint"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "n_scored": {
+            "type": "integer",
+            "title": "N Scored"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scoring_year",
+          "next_year",
+          "metrics",
+          "coefficients",
+          "donors",
+          "points",
+          "n_scored",
+          "notes"
+        ],
+        "title": "RiskOut"
+      },
+      "RiskPoint": {
+        "properties": {
+          "donor_id": {
+            "type": "string",
+            "title": "Donor Id"
+          },
+          "donor_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Donor Class"
+          },
+          "donor_class_label": {
+            "type": "string",
+            "title": "Donor Class Label"
+          },
+          "giving_last_year": {
+            "type": "number",
+            "title": "Giving Last Year"
+          },
+          "p_lapse": {
+            "type": "number",
+            "title": "P Lapse"
+          },
+          "value_at_risk": {
+            "type": "number",
+            "title": "Value At Risk"
+          },
+          "capped": {
+            "type": "boolean",
+            "title": "Capped"
+          }
+        },
+        "type": "object",
+        "required": [
+          "donor_id",
+          "donor_class",
+          "donor_class_label",
+          "giving_last_year",
+          "p_lapse",
+          "value_at_risk",
+          "capped"
+        ],
+        "title": "RiskPoint"
+      },
+      "RollEntry": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "recurring": {
+            "type": "boolean",
+            "title": "Recurring"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "amount",
+          "recurring"
+        ],
+        "title": "RollEntry"
+      },
+      "RollOut": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/RollSection"
+            },
+            "type": "array",
+            "title": "Sections"
+          },
+          "in_kind": {
+            "items": {
+              "$ref": "#/components/schemas/InKindEntry"
+            },
+            "type": "array",
+            "title": "In Kind"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/RollStats"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "year",
+          "sections",
+          "in_kind",
+          "stats"
+        ],
+        "title": "RollOut"
+      },
+      "RollProject": {
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "Project"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/RollEntry"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project",
+          "entries"
+        ],
+        "title": "RollProject"
+      },
+      "RollSection": {
+        "properties": {
+          "heading": {
+            "type": "string",
+            "title": "Heading"
+          },
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/RollProject"
+            },
+            "type": "array",
+            "title": "Projects"
+          }
+        },
+        "type": "object",
+        "required": [
+          "heading",
+          "projects"
+        ],
+        "title": "RollSection"
+      },
+      "RollStats": {
+        "properties": {
+          "cash_entries": {
+            "type": "integer",
+            "title": "Cash Entries"
+          },
+          "masked_entries": {
+            "type": "integer",
+            "title": "Masked Entries"
+          },
+          "in_kind_entries": {
+            "type": "integer",
+            "title": "In Kind Entries"
+          },
+          "friends_label": {
+            "type": "string",
+            "title": "Friends Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cash_entries",
+          "masked_entries",
+          "in_kind_entries",
+          "friends_label"
+        ],
+        "title": "RollStats"
+      },
+      "ScenarioBand": {
+        "properties": {
+          "expected": {
+            "type": "number",
+            "title": "Expected"
+          },
+          "low": {
+            "type": "number",
+            "title": "Low"
+          },
+          "high": {
+            "type": "number",
+            "title": "High"
+          },
+          "delta_vs_baseline": {
+            "type": "number",
+            "title": "Delta Vs Baseline"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expected",
+          "low",
+          "high",
+          "delta_vs_baseline"
+        ],
+        "title": "ScenarioBand"
+      },
+      "ScenarioIn": {
+        "properties": {
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Id"
+          },
+          "exceptional_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exceptional Threshold"
+          },
+          "r1_uplift_pp": {
+            "type": "number",
+            "title": "R1 Uplift Pp",
+            "default": 0.0
+          },
+          "r2_uplift_pp": {
+            "type": "number",
+            "title": "R2 Uplift Pp",
+            "default": 0.0
+          },
+          "new_donor_multiplier": {
+            "type": "number",
+            "title": "New Donor Multiplier",
+            "default": 1.0
+          },
+          "recurring_conversion_pct": {
+            "type": "number",
+            "title": "Recurring Conversion Pct",
+            "default": 0.0
+          },
+          "major_gift_ntd": {
+            "type": "number",
+            "title": "Major Gift Ntd",
+            "default": 0.0
+          }
+        },
+        "type": "object",
+        "title": "ScenarioIn"
+      },
+      "ScenarioOut": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "base_year": {
+            "type": "integer",
+            "title": "Base Year"
+          },
+          "projection_year": {
+            "type": "integer",
+            "title": "Projection Year"
+          },
+          "exceptional_threshold": {
+            "type": "number",
+            "title": "Exceptional Threshold"
+          },
+          "ordinary_last_year": {
+            "type": "number",
+            "title": "Ordinary Last Year"
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/Band"
+          },
+          "scenario": {
+            "$ref": "#/components/schemas/ScenarioBand"
+          },
+          "exceptional_line": {
+            "$ref": "#/components/schemas/ExceptionalLine"
+          },
+          "observed": {
+            "$ref": "#/components/schemas/Observed"
+          },
+          "cohorts": {
+            "items": {
+              "$ref": "#/components/schemas/CohortRow"
+            },
+            "type": "array",
+            "title": "Cohorts"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryRow"
+            },
+            "type": "array",
+            "title": "History"
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Assumptions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "base_year",
+          "projection_year",
+          "exceptional_threshold",
+          "ordinary_last_year",
+          "baseline",
+          "scenario",
+          "exceptional_line",
+          "observed",
+          "cohorts",
+          "history",
+          "assumptions"
+        ],
+        "title": "ScenarioOut"
+      },
+      "SeasonCell": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "month": {
+            "type": "integer",
+            "title": "Month"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "year",
+          "month",
+          "value"
+        ],
+        "title": "SeasonCell"
+      },
+      "SeasonOut": {
+        "properties": {
+          "years": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Years"
+          },
+          "cells": {
+            "items": {
+              "$ref": "#/components/schemas/SeasonCell"
+            },
+            "type": "array",
+            "title": "Cells"
+          }
+        },
+        "type": "object",
+        "required": [
+          "years",
+          "cells"
+        ],
+        "title": "SeasonOut"
+      },
+      "SolicitedOut": {
+        "properties": {
+          "column": {
+            "type": "string",
+            "title": "Column"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/SolicitedTier"
+            },
+            "type": "array",
+            "title": "Tiers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "column",
+          "tiers"
+        ],
+        "title": "SolicitedOut"
+      },
+      "SolicitedTier": {
+        "properties": {
+          "tier": {
+            "type": "string",
+            "title": "Tier"
+          },
+          "solicited_amount": {
+            "type": "number",
+            "title": "Solicited Amount"
+          },
+          "solicited_count": {
+            "type": "integer",
+            "title": "Solicited Count"
+          },
+          "unsolicited_amount": {
+            "type": "number",
+            "title": "Unsolicited Amount"
+          },
+          "unsolicited_count": {
+            "type": "integer",
+            "title": "Unsolicited Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tier",
+          "solicited_amount",
+          "solicited_count",
+          "unsolicited_amount",
+          "unsolicited_count"
+        ],
+        "title": "SolicitedTier"
+      },
+      "Target": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "donors": {
+            "type": "integer",
+            "title": "Donors"
+          },
+          "first_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Year"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "donors"
+        ],
+        "title": "Target"
+      },
+      "TreeNode": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "children": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/TreeNode"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Children"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "value"
+        ],
+        "title": "TreeNode"
+      },
+      "TrendRow": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "total": {
+            "type": "number",
+            "title": "Total"
+          },
+          "regular": {
+            "type": "number",
+            "title": "Regular"
+          },
+          "exceptional": {
+            "type": "number",
+            "title": "Exceptional"
+          },
+          "n_exceptional": {
+            "type": "integer",
+            "title": "N Exceptional"
+          },
+          "donors": {
+            "type": "integer",
+            "title": "Donors"
+          },
+          "records": {
+            "type": "integer",
+            "title": "Records"
+          },
+          "total_yoy_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Yoy Pct"
+          },
+          "regular_yoy_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Regular Yoy Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "year",
+          "total",
+          "regular",
+          "exceptional",
+          "n_exceptional",
+          "donors",
+          "records",
+          "total_yoy_pct",
+          "regular_yoy_pct"
+        ],
+        "title": "TrendRow"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "Verification": {
+        "properties": {
+          "verified": {
+            "type": "boolean",
+            "title": "Verified"
+          },
+          "numbers_checked": {
+            "type": "integer",
+            "title": "Numbers Checked"
+          },
+          "mismatches": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Mismatches"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verified",
+          "numbers_checked",
+          "mismatches"
+        ],
+        "title": "Verification"
+      },
+      "VerifyIn": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "VerifyIn"
+      }
+    }
+  }
+}
