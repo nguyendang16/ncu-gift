@@ -149,7 +149,8 @@ def test_request_shape_matches_the_model_docs(client_, mock_id, monkeypatch):
 def test_nothing_identifying_is_ever_sent(client_, mock_id, monkeypatch):
     with_key(monkeypatch)
     turn_on(client_, projects=True, headers=True)
-    fake = Fake(ok_reply("Fine."), ok_reply(json.dumps({"headline": "H", "points": ["a", "b", "c"]})))
+    sample = {"observations": [{"key": "compare", "text": "a"}, {"key": "base", "text": "b"}, {"key": "concentration", "text": "c"}, {"key": "accounts", "text": "d"}], "recommendations": ["one", "two", "three"]}
+    fake = Fake(ok_reply("Fine."), ok_reply(json.dumps(sample)))
     client.set_transport(fake)
     ask(client_, mock_id)
     client_.post("/api/ai/insights", json={"dataset_id": mock_id})
@@ -236,9 +237,14 @@ def test_quoting_the_facts_verifies(client_, mock_id, monkeypatch):
 def test_insights_accept_json_even_inside_code_fences(client_, mock_id, monkeypatch):
     with_key(monkeypatch)
     turn_on(client_)
-    client.set_transport(Fake(ok_reply("```json\n" + json.dumps({"headline": "A short headline.", "points": ["one", "two", "three", "four"]}) + "\n```")))
+    body = {"observations": [
+        {"key": "compare", "text": "one"}, {"key": "base", "text": "two"},
+        {"key": "concentration", "text": "three"}, {"key": "accounts", "text": "four"},
+        {"key": "compare", "text": "ignored"}], "recommendations": ["r1", "r2", "r3", "r4", "r5", "r6"]}
+    client.set_transport(Fake(ok_reply("```json\n" + json.dumps(body) + "\n```")))
     r = client_.post("/api/ai/insights", json={"dataset_id": mock_id}).json()
-    assert r["headline"] == "A short headline." and r["points"] == ["one", "two", "three"]
+    assert [o["key"] for o in r["observations"]] == ["compare", "base", "concentration", "accounts"]
+    assert r["observations"][0]["text"] == "one" and r["recommendations"] == ["r1", "r2", "r3", "r4", "r5"]
 
 
 def test_bad_json_is_reported_plainly(client_, mock_id, monkeypatch):
@@ -348,7 +354,9 @@ def test_demo_mode_runs_end_to_end_without_a_key_and_is_labelled(client_, mock_i
     a = ask(client_, mock_id, "Why did total giving change?").json()
     assert a["demo"] is True and a["answer"].startswith("[Demo answer") and a["verification"]["ok"] is True
     i = client_.post("/api/ai/insights", json={"dataset_id": mock_id}).json()
-    assert len(i["points"]) == 3 and i["verification"]["ok"] is True and i["demo"] is True
+    assert [o["key"] for o in i["observations"]] == ["compare", "base", "concentration", "accounts"]
+    assert len(i["recommendations"]) == 5 and i["verification"]["ok"] is True and i["demo"] is True
+    assert "主計室" in i["observations"][3]["text"] or "accounting" in i["observations"][3]["text"].lower()
     zh = client_.post("/api/ai/ask", json={"dataset_id": mock_id, "question": "為什麼下降?"}, headers={"Accept-Language": "zh-TW"}).json()
     assert zh["answer"].startswith("【示範回答") and zh["verification"]["ok"] is True
     b = client_.post("/api/briefs", json={"dataset_id": mock_id, "project": "Physics: Scholarship", "use_ai": True}).json()

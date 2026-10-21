@@ -41,10 +41,87 @@ def test_scope_regular_excludes_exceptional_gifts(client, mock_id):
     assert sum(b["amount"] for b in a["bands"]) > sum(b["amount"] for b in r["bands"])
 
 
+def test_trend_bands_follow_the_two_cuts(client, mock_id):
+    rows = client.get("/api/trend", params={"dataset_id": mock_id, "band_low": 500_000, "band_high": 1_000_000}).json()
+    for row in rows:
+        assert math.isclose(row["band_under"] + row["band_mid"] + row["band_over"], row["total"], rel_tol=1e-9)
+    wider = client.get("/api/trend", params={"dataset_id": mock_id, "band_low": 100_000, "band_high": 10_000_000}).json()
+    assert wider[-1]["band_under"] < rows[-1]["band_under"]
+    assert wider[-1]["band_over"] < rows[-1]["band_over"]
+    bad = client.get("/api/trend", params={"dataset_id": mock_id, "band_low": 2_000_000, "band_high": 500_000})
+    assert bad.status_code == 400
+
+
+def test_class_compare_lines_up_with_the_selected_year(client, mock_id):
+    o = client.get("/api/overview", params={"dataset_id": mock_id, "year": 2025}).json()
+    comp = o["class_compare"]
+    current = next(row for row in comp["series"] if row["year"] == 2025)
+    by_label = dict(zip(comp["labels"], current["amounts"]))
+    for row in o["donor_classes"]:
+        assert math.isclose(by_label[row["label"]], row["amount"], rel_tol=1e-6)
+    earlier = next(row for row in comp["series"] if row["year"] == 2023)
+    assert earlier["amounts"] != current["amounts"]
+    regular = client.get("/api/overview", params={"dataset_id": mock_id, "year": 2025, "scope": "regular"}).json()
+    reg_current = next(row for row in regular["class_compare"]["series"] if row["year"] == 2025)
+    reg_labels = dict(zip(regular["class_compare"]["labels"], reg_current["amounts"]))
+    for row in regular["donor_classes"]:
+        assert math.isclose(reg_labels[row["label"]], row["amount"], rel_tol=1e-6)
+
+
+def test_class_compare_amount_window_keeps_both_ends(client, mock_id):
+    full = client.get("/api/class-compare", params={"dataset_id": mock_id}).json()
+    high = client.get("/api/class-compare", params={"dataset_id": mock_id, "amount_min": 1_000_000}).json()
+    full_2025 = sum(next(row["amounts"] for row in full["series"] if row["year"] == 2025))
+    high_2025 = sum(next(row["amounts"] for row in high["series"] if row["year"] == 2025))
+    assert high_2025 < full_2025
+    exact = client.get("/api/class-compare", params={"dataset_id": mock_id, "amount_min": 1_000_000, "amount_max": 1_000_000})
+    assert exact.status_code == 200
+    swapped = client.get("/api/class-compare", params={"dataset_id": mock_id, "amount_min": 2_000_000, "amount_max": 500_000})
+    assert swapped.status_code == 400
+
+
 def test_exceptional_threshold_is_a_parameter(client, mock_id):
     lo = client.get("/api/trend", params={"dataset_id": mock_id, "exceptional_threshold": 1_000_000}).json()
     hi = client.get("/api/trend", params={"dataset_id": mock_id, "exceptional_threshold": 100_000_000}).json()
     assert lo[-1]["n_exceptional"] > hi[-1]["n_exceptional"]
+
+
+def test_hero_key_indicators_match_the_tables(client, mock_id):
+    o = client.get("/api/overview", params={"dataset_id": mock_id, "year": 2025}).json()
+    k = o["kpis"]
+    card = next(m for m in o["methods"] if m["label"] == "Credit card")
+    assert k["card_gifts"] == card["count"]
+    assert k["card_delta"] == k["card_gifts"] - k["prev_card_gifts"]
+    same_year = next(row for row in o["kpi_compare"] if row["year"] == 2025)
+    assert same_year["card_gifts"] == card["count"]
+    assert math.isclose(same_year["card_amount"], card["amount"])
+    assert k["large_delta"] == k["large_gifts"] - k["prev_large_gifts"]
+    assert k["repeat_delta"] == k["repeat_selected"] - k["prev_repeat"]
+    assert math.isclose(k["total_yoy_pct"], (k["total"] - k["prev_total"]) / k["prev_total"] * 100, rel_tol=1e-6)
+    earlier = client.get("/api/overview", params={"dataset_id": mock_id, "year": 2025, "compare_year": 2023}).json()
+    assert earlier["prev_year"] == 2023
+    assert earlier["kpis"]["prev_total"] != k["prev_total"]
+    compared = client.get("/api/overview", params={"dataset_id": mock_id, "year": 2025, "compare_year": 2023}).json()
+    assert [row["year"] for row in compared["kpi_compare"]] == [2023, 2025]
+    current = next(row for row in compared["kpi_compare"] if row["year"] == 2025)
+    earlier_row = next(row for row in compared["kpi_compare"] if row["year"] == 2023)
+    assert math.isclose(current["total"], compared["kpis"]["total"])
+    assert current["donors"] == compared["kpis"]["donors"]
+    assert current["large_gifts"] == compared["kpis"]["large_gifts"]
+    year_2023 = client.get("/api/overview", params={"dataset_id": mock_id, "year": 2023}).json()
+    assert math.isclose(earlier_row["total"], year_2023["kpis"]["total"])
+    assert earlier_row["repeat"] is None
+    adjacent = next(row for row in o["kpi_compare"] if row["year"] == 2025)
+    assert adjacent["repeat"] == o["kpis"]["repeat_selected"]
+    jumped = client.get("/api/bridge", params={"dataset_id": mock_id, "year": 2025, "compare_year": 2023}).json()
+    assert jumped["prev_year"] == 2023
+    assert math.isclose(jumped["start"] + sum(s["value"] for s in jumped["steps"]), jumped["end"], abs_tol=1e-6)
+    assert 0 <= k["million_share"] <= 1
+    assert k["million_projects"] == len(o["projects_over_1m"]) or k["million_projects"] > 12
+    if o["projects_over_1m"]:
+        assert math.isclose(k["top_project_share"], o["projects_over_1m"][0]["amount"] / k["total"], rel_tol=1e-6)
+    if o["projects_over_1m"] and k["million_projects"] <= 12:
+        assert math.isclose(k["million_amount"], sum(p["amount"] for p in o["projects_over_1m"]), rel_tol=1e-6)
 
 
 def test_ordinary_giving_and_totals_move_differently(client, mock_id):

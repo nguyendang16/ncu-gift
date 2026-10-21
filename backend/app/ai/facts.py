@@ -50,6 +50,11 @@ def build_facts(df: pd.DataFrame, year: int, exceptional: float, large: float, *
             "large_gifts": {"threshold": _m(large), "count": k["large_gifts"], "amount": _m(k["large_gifts_amount"])},
             "by_donor_type": _rows(o["donor_classes"]), "by_purpose_group": _rows(o["purpose_groups"]),
             "by_payment_method": _rows(o["methods"]), "by_gift_size": [{"name": b["label"], "amount": _m(b["amount"]), "gifts": b["count"]} for b in o["bands"]],
+            "repeat_donors": k["repeat_selected"], "credit_card_gifts": k["card_gifts"],
+            "million_projects": k["million_projects"],
+            "million_share": _share(k["million_share"]) if k["million_share"] is not None else None,
+            "top_project_share": _share(k["top_project_share"]) if k["top_project_share"] is not None else None,
+            "accounting_office": "not in these records: do not invent cash receipts or cash surplus",
         },
         "data_notes": o["notes"],
     }

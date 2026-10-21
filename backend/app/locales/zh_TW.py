@@ -157,7 +157,7 @@ M: dict[str, str] = {
     "hl.divergence_title": "總額與實質趨勢走向不同",
     "hl.divergence_text": "{year} 年捐款總額變動 {total}，但一般捐款變動 {ordinary}。請以一般捐款作為規劃基礎：那是你能影響的部分。",
     "hl.steady_title": "今年的一般捐款",
-    "hl.steady_text": "一般捐款相較去年變動 {ordinary}，總額變動 {total}。",
+    "hl.steady_text": "一般捐款相較 {compare} 年變動 {ordinary}，總額變動 {total}。",
     "hl.concentration_title": "少數捐款人占了很大比例",
     "hl.concentration_text": "{year} 年，前 1% 的捐款人貢獻了全部捐款的 {all}；若只計一般捐款，前 1% 貢獻 {ordinary}。",
     "hl.first_gift_title": "多數首次捐款人不會再捐第二次",
@@ -226,6 +226,14 @@ M: dict[str, str] = {
     "ai.demo.first_gift": "{year} 年有 {n} 位首次捐款人，其中 {k} 位（{rate}）隔年再度捐款；先前已捐過的捐款人則有 {repeat} 會回來。",
     "ai.demo.concentration": "前 1% 的捐款人貢獻了全部捐款的 {all}，以及一般捐款的 {ordinary}。",
     "ai.demo.general": "{year} 年捐款總額為 {total}，一般捐款為 {ordinary}，較前一年變動 {change}。",
+    "ai.demo.base": "回流續捐 {repeat} 人，信用卡 {cards} 筆，大額捐款 {large} 筆。",
+    "ai.demo.base_nocard": "回流續捐 {repeat} 人，大額捐款 {large} 筆。沒有捐助方式欄位，所以不算信用卡筆數。",
+    "ai.demo.accounts": "捐款明細沒有主計室的捐贈收入收現和現金結餘，所以這兩項不填金額。",
+    "ai.demo.rec1": "可考慮和大額捐贈人保持聯繫，讓單筆超大額捐款少承擔一些總額。",
+    "ai.demo.rec2": "可考慮維持續捐提醒，並和受贈單位保持聯繫，延續回流與較小額的捐款。",
+    "ai.demo.rec3": "統計時把超大額和一般捐款分開，並以所選的比較年度為基準。",
+    "ai.demo.rec4": "動能下滑的專案，可看看宣傳方式，或是否要整併。",
+    "ai.demo.rec5": "海外校友的勸募，可等相關登記完成後再擴大。",
     "ai.demo.brief": "{project}歡迎各界支持。去年共有 {donors} 位捐款人捐給此類別，中位數捐款為 NT${median:,.0f}。一般捐款介於 NT${low:,.0f} 到 NT${high:,.0f} 之間。本稿供同仁審閱。",
 
     # ---------------------------------------------------------------- donor roll
@@ -284,6 +292,8 @@ M: dict[str, str] = {
     "err.brief_not_found": "找不到簡報",
     "err.unknown_purpose": "未知的用途標籤：{label}",
     "err.unknown_class": "未知的身份別：{label}",
+    "err.band_order": "較低的金額要小於較高的金額。",
+    "err.class_range": "最低金額不能高於最高金額。",
 }
 
 # ---------------------------------------------------------------- identifiers -> 繁體中文

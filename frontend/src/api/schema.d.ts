@@ -941,6 +941,49 @@ export interface components {
             /** File */
             file: string;
         };
+        /** ClassCompare */
+        ClassCompare: {
+            /** Labels */
+            labels: string[];
+            /** Series */
+            series: components["schemas"]["ClassYear"][];
+        };
+        /** ClassYear */
+        ClassYear: {
+            /** Year */
+            year: number;
+            /** Amounts */
+            amounts: number[];
+        };
+        /** KpiYear */
+        KpiYear: {
+            /** Year */
+            year: number;
+            /** Total */
+            total: number;
+            /** Regular Total */
+            regular_total: number;
+            /** Exceptional Total */
+            exceptional_total: number;
+            /** N Exceptional */
+            n_exceptional: number;
+            /** Donors */
+            donors: number;
+            /** Records */
+            records: number;
+            /** In Kind Records */
+            in_kind_records: number;
+            /** Repeat */
+            repeat: number | null;
+            /** Large Gifts */
+            large_gifts: number;
+            /** Large Gifts Amount */
+            large_gifts_amount: number;
+            /** Card Gifts */
+            card_gifts: number | null;
+            /** Card Amount */
+            card_amount: number | null;
+        };
         /** Breakdown */
         Breakdown: {
             /** Label */
@@ -1351,6 +1394,13 @@ export interface components {
             /** Large Threshold */
             large_threshold?: number | null;
         };
+        /** Observation */
+        Observation: {
+            /** Key */
+            key: string;
+            /** Text */
+            text: string;
+        };
         /** InsightsOut */
         InsightsOut: {
             /** Model */
@@ -1361,10 +1411,10 @@ export interface components {
             cost_usd: number;
             /** Call Id */
             call_id: number;
-            /** Headline */
-            headline: string;
-            /** Points */
-            points: string[];
+            /** Observations */
+            observations: components["schemas"]["Observation"][];
+            /** Recommendations */
+            recommendations: string[];
             verification: components["schemas"]["NumberCheck"];
             /** Sent */
             sent: string;
@@ -1427,6 +1477,38 @@ export interface components {
             returning_donors: number | null;
             /** Repeat Selected */
             repeat_selected: number | null;
+            /** Prev Total */
+            prev_total: number | null;
+            /** Prev Regular Total */
+            prev_regular_total: number | null;
+            /** Prev Repeat */
+            prev_repeat: number | null;
+            /** Repeat Delta */
+            repeat_delta: number | null;
+            /** Repeat Ratio */
+            repeat_ratio: number | null;
+            /** Card Gifts */
+            card_gifts: number | null;
+            /** Prev Card Gifts */
+            prev_card_gifts: number | null;
+            /** Card Delta */
+            card_delta: number | null;
+            /** Card Yoy Pct */
+            card_yoy_pct: number | null;
+            /** Prev Large Gifts */
+            prev_large_gifts: number | null;
+            /** Large Delta */
+            large_delta: number | null;
+            /** Large Prior Avg */
+            large_prior_avg: number | null;
+            /** Million Amount */
+            million_amount: number;
+            /** Million Projects */
+            million_projects: number;
+            /** Million Share */
+            million_share: number;
+            /** Top Project Share */
+            top_project_share: number | null;
         };
         /** LeakOut */
         LeakOut: {
@@ -1548,12 +1630,16 @@ export interface components {
             /** Scope Label */
             scope_label: string;
             kpis: components["schemas"]["Kpis"];
+            /** Kpi Compare */
+            kpi_compare: components["schemas"]["KpiYear"][];
             /** Monthly */
             monthly: components["schemas"]["MonthRow"][];
             /** Bands */
             bands: components["schemas"]["Breakdown"][];
             /** Donor Classes */
             donor_classes: components["schemas"]["Breakdown"][];
+            /** Class Compare */
+            class_compare: components["schemas"]["ClassCompare"];
             /** Methods */
             methods: components["schemas"]["Breakdown"][];
             /** Purpose Groups */
@@ -1935,6 +2021,12 @@ export interface components {
             exceptional: number;
             /** N Exceptional */
             n_exceptional: number;
+            /** Band Under */
+            band_under: number;
+            /** Band Mid */
+            band_mid: number;
+            /** Band Over */
+            band_over: number;
             /** Donors */
             donors: number;
             /** Records */

@@ -44,6 +44,12 @@ export function AiSummary({ year }: { year?: number }) {
   const { ready } = useAiReady();
   const run = useInsights();
   const r = run.data;
+  const labels: Record<string, string> = {
+    compare: t("ai.obs.compare"),
+    base: t("ai.obs.base"),
+    concentration: t("ai.obs.concentration"),
+    accounts: t("ai.obs.accounts"),
+  };
   return (
     <Card ai icon="ai" title={t("ai.summary_title")} sub={t("ai.summary_sub")}
       right={<button className="btn ai" disabled={!ready || run.isPending} onClick={() => run.mutate({ dataset_id: datasetId, year, exceptional_threshold: settings.exceptional, large_threshold: settings.large })}>
@@ -53,9 +59,27 @@ export function AiSummary({ year }: { year?: number }) {
       {run.isError && <ErrorView error={run.error} />}
       {r && (
         <div className="rise">
-          <p style={{ fontSize: "1.1rem", fontWeight: 650, margin: "0 0 10px" }}>{r.headline}</p>
-          <ul style={{ margin: "0 0 12px", paddingLeft: 20, display: "grid", gap: 6 }}>{r.points.map((p, i) => <li key={i}>{p}</li>)}</ul>
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <h3 className="brief-title">{t("ai.brief_title")}</h3>
+          <div className="brief">
+            <section className="brief-col">
+              <h3>{t("ai.observe")}</h3>
+              {r.observations.map((item) => (
+                <div className="obs-row" key={item.key}>
+                  <span className="obs-tag">{labels[item.key] ?? item.key}</span>
+                  <p>{item.text}</p>
+                </div>
+              ))}
+            </section>
+            <section className="brief-col">
+              <h3>{t("ai.advise")}</h3>
+              <ol className="advice">
+                {r.recommendations.map((text, i) => (
+                  <li key={i}><span>{String(i + 1).padStart(2, "0")}</span><p>{text}</p></li>
+                ))}
+              </ol>
+            </section>
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 12 }}>
             <VerifyBadge v={r.verification} />
             {r.demo && <span className="small muted">{t("ai.by_demo")}</span>}
           </div>

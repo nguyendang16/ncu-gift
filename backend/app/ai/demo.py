@@ -38,19 +38,23 @@ def _insights(p: dict) -> dict:
     f = p["facts"]
     year = f["context"]["selected_year"]
     cur = next(y for y in f["yearly"] if y["year"] == year)
-    points = [t("ai.demo.general", year=year, total=cur["total"]["text"], ordinary=cur["ordinary"]["text"],
-                change=(cur["ordinary_change_vs_previous_year"] or {"text": "–"})["text"])]
-    c = f.get("concentration")
-    if c:
-        points.append(t("ai.demo.concentration", all=c["top_1_percent_of_donors_share_of_all_money"]["text"], ordinary=c["top_1_percent_share_of_ordinary_money"]["text"]))
-    g = (f.get("donor_journey") or {}).get("second_gift")
-    if g:
-        x = g[-1]
-        points.append(t("ai.demo.first_gift", year=x["first_time_donors_in"], n=x["number"], k=x["gave_again_next_year"], rate=x["share_who_gave_again"]["text"],
-                        repeat=x["repeat_donors_share_who_gave_again"]["text"]))
-    while len(points) < 3:
-        points.append(points[0])
-    return {"headline": t("ai.demo.headline", year=year), "points": points[:3]}
+    detail = f["selected_year_detail"]
+    change = (cur["ordinary_change_vs_previous_year"] or {"text": "–"})["text"]
+    cards = detail.get("credit_card_gifts")
+    repeat = detail.get("repeat_donors") or 0
+    large = detail["large_gifts"]["count"]
+    base = t("ai.demo.base", repeat=repeat, cards=cards, large=large) if cards is not None else t("ai.demo.base_nocard", repeat=repeat, large=large)
+    c = f.get("concentration") or {}
+    observations = [
+        {"key": "compare", "text": t("ai.demo.general", year=year, total=cur["total"]["text"], ordinary=cur["ordinary"]["text"], change=change)},
+        {"key": "base", "text": base},
+        {"key": "concentration", "text": t("ai.demo.concentration",
+                                            all=c.get("top_1_percent_of_donors_share_of_all_money", {}).get("text", "–"),
+                                            ordinary=c.get("top_1_percent_share_of_ordinary_money", {}).get("text", "–"))},
+        {"key": "accounts", "text": t("ai.demo.accounts")},
+    ]
+    recommendations = [t(f"ai.demo.rec{i}") for i in range(1, 6)]
+    return {"observations": observations, "recommendations": recommendations}
 
 
 def _brief(p: dict) -> str:

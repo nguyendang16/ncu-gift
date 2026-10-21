@@ -53,9 +53,19 @@ def test_purpose_tree_adds_up_to_the_ordinary_total(client, mock_id):
     tree = client.get("/api/purpose-tree", params={"dataset_id": mock_id, "year": 2025}).json()
     ov = client.get("/api/overview", params={"dataset_id": mock_id, "year": 2025}).json()
     assert math.isclose(sum(n["value"] for n in tree), ov["kpis"]["regular_total"], rel_tol=1e-9)
-    for node in tree:
-        if node.get("children"):
-            assert math.isclose(sum(c["value"] for c in node["children"]), node["value"], rel_tol=1e-9)
+
+    def names(nodes):
+        found = []
+        for node in nodes:
+            kids = node.get("children") or []
+            if kids:
+                assert math.isclose(sum(c["value"] for c in kids), node["value"], rel_tol=1e-9)
+                found.extend(names(kids))
+            else:
+                found.append(node["name"])
+        return found
+    listed = names(tree)
+    assert "Other" not in listed and len(listed) == len(set(listed))
 
 
 def test_highlights_are_translated_and_link_somewhere(client, mock_id):
