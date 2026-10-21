@@ -40,15 +40,52 @@ def _rows(frame: pd.DataFrame, key: str, labels=None, order: list | None = None)
     return rows
 
 
-def trend(df: pd.DataFrame, exceptional: float) -> list[dict]:
+def class_compare(df: pd.DataFrame, exceptional: float, scope: str = "all",
+                  amount_min: float | None = None, amount_max: float | None = None) -> dict:
+    """Gift totals by donor category for every year. An amount window keeps gifts inside it, both ends included."""
+    order = org.DONOR_CLASSES + ["unknown"]
+    labels = [i18n.class_label(key) for key in order]
+    series = []
+    for year in years_of(df):
+        part = cash(df[df["year"] == year])
+        if scope == "regular":
+            part = part[part["amount_ntd"] < exceptional]
+        if amount_min is not None:
+            part = part[part["amount_ntd"] >= amount_min]
+        if amount_max is not None:
+            part = part[part["amount_ntd"] <= amount_max]
+        by_label = {row["label"]: row["amount"] for row in _rows(part, "donor_class", i18n.class_label, order)}
+        series.append({"year": int(year), "amounts": [float(by_label.get(label, 0.0)) for label in labels]})
+    keep = [i for i in range(len(labels)) if any(row["amounts"][i] for row in series)]
+    return {
+        "labels": [labels[i] for i in keep],
+        "series": [{"year": row["year"], "amounts": [row["amounts"][i] for i in keep]} for row in series],
+    }
+
+
+def resolve_compare(years: list[int], year: int, compare_year: int | None) -> int | None:
+    """The year a comparison uses. An explicit choice wins; otherwise the latest earlier year."""
+    others = [y for y in years if y != year]
+    if compare_year in others:
+        return int(compare_year)
+    earlier = [y for y in others if y < year]
+    return max(earlier) if earlier else None
+
+
+def trend(df: pd.DataFrame, exceptional: float, band_low: float = 500_000, band_high: float = 1_000_000) -> list[dict]:
     out = []
     for y in years_of(df):
         cur = df[df["year"] == y]
         c = cash(cur)
         reg = c[c["amount_ntd"] < exceptional]
         exc = c[c["amount_ntd"] >= exceptional]
+        under = c[c["amount_ntd"] < band_low]
+        mid = c[(c["amount_ntd"] >= band_low) & (c["amount_ntd"] < band_high)]
+        over = c[c["amount_ntd"] >= band_high]
         out.append({"year": y, "total": float(c["amount_ntd"].sum()), "regular": float(reg["amount_ntd"].sum()),
                     "exceptional": float(exc["amount_ntd"].sum()), "n_exceptional": int(len(exc)),
+                    "band_under": float(under["amount_ntd"].sum()), "band_mid": float(mid["amount_ntd"].sum()),
+                    "band_over": float(over["amount_ntd"].sum()),
                     "donors": int(cur["donor_code"].nunique()), "records": int(len(cur))})
     for i, r in enumerate(out):
         prev = out[i - 1] if i else None
@@ -58,7 +95,7 @@ def trend(df: pd.DataFrame, exceptional: float) -> list[dict]:
 
 
 def overview(df: pd.DataFrame, year: int, exceptional: float, large: float, scope: str = "all",
-             return_definition: str = "retained") -> dict:
+             return_definition: str = "retained", compare_year: int | None = None) -> dict:
     ys = years_of(df)
     if year not in ys:
         raise InsufficientData(t("stats.no_year", year=year))
@@ -67,7 +104,7 @@ def overview(df: pd.DataFrame, year: int, exceptional: float, large: float, scop
     reg = c[c["amount_ntd"] < exceptional]
     exc = c[c["amount_ntd"] >= exceptional]
     scoped = c if scope == "all" else reg
-    prev_year = max([y for y in ys if y < year], default=None)
+    prev_year = resolve_compare(ys, year, compare_year)
 
     tr = {r["year"]: r for r in trend(df, exceptional)}
     A = active_sets(df)
@@ -81,16 +118,95 @@ def overview(df: pd.DataFrame, year: int, exceptional: float, large: float, scop
            "either": None if retained is None else retained + (returning or 0)}[return_definition]
 
     large_rows = c[c["amount_ntd"] >= large]
+    prev_tr = tr.get(prev_year) if prev_year is not None else None
+
+    def repeat_count(y: int) -> int | None:
+        earlier = [yy for yy in A if yy < y]
+        if not earlier or y not in A:
+            return None
+        prev = max(earlier)
+        donors_now = A[y]
+        kept = len(donors_now & A[prev])
+        before_years = [yy for yy in A if yy < prev]
+        came_back = len((donors_now - A[prev]) & set().union(*(A[yy] for yy in before_years))) if before_years else None
+        if return_definition == "retained":
+            return kept
+        if return_definition == "returning_after_gap":
+            return came_back
+        if came_back is None:
+            return None
+        return kept + came_back
+
+    prev_repeat = repeat_count(prev_year) if prev_year is not None else None
+    has_method = bool(df["method"].notna().any())
+
+    def year_cash(y: int) -> pd.DataFrame:
+        part = cash(df[df["year"] == y])
+        return part[part["amount_ntd"] < exceptional] if scope == "regular" else part
+
+    def card_count(part: pd.DataFrame) -> int | None:
+        if not has_method:
+            return None
+        return int((part["method"] == "credit_card").sum())
+
+    def large_count(y: int) -> int:
+        part = cash(df[df["year"] == y])
+        return int((part["amount_ntd"] >= large).sum())
+
+    card_gifts = card_count(scoped)
+    prev_card = card_count(year_cash(prev_year)) if prev_year is not None else None
+    prev_large = large_count(prev_year) if prev_year is not None else None
+    earlier_years = [y for y in ys if prev_year is not None and y < prev_year]
+    by_all = c.groupby("project_name")["amount_ntd"].sum()
+    over_million = by_all[by_all >= 1_000_000]
+    cash_total = float(c["amount_ntd"].sum())
+    million_amount = float(over_million.sum()) if len(over_million) else 0.0
     kpis = {
-        "total": float(c["amount_ntd"].sum()), "regular_total": float(reg["amount_ntd"].sum()),
+        "total": cash_total, "regular_total": float(reg["amount_ntd"].sum()),
         "exceptional_total": float(exc["amount_ntd"].sum()), "n_exceptional": int(len(exc)),
-        "share_exceptional": float(exc["amount_ntd"].sum() / c["amount_ntd"].sum()) if len(c) else 0.0,
+        "share_exceptional": float(exc["amount_ntd"].sum() / cash_total) if cash_total else 0.0,
         "records": int(len(cur)), "in_kind_records": int(cur["is_in_kind"].sum()),
         "donors": int(cur["donor_code"].nunique()),
         "large_gifts": int(len(large_rows)), "large_gifts_amount": float(large_rows["amount_ntd"].sum()),
-        "total_yoy_pct": tr[year]["total_yoy_pct"], "regular_yoy_pct": tr[year]["regular_yoy_pct"],
+        "total_yoy_pct": pct_change(tr[year]["total"], prev_tr["total"]) if prev_tr else None,
+        "regular_yoy_pct": pct_change(tr[year]["regular"], prev_tr["regular"]) if prev_tr else None,
         "retained_donors": retained, "returning_donors": returning, "repeat_selected": sel,
+        "prev_total": None if prev_tr is None else prev_tr["total"],
+        "prev_regular_total": None if prev_tr is None else prev_tr["regular"],
+        "prev_repeat": prev_repeat,
+        "repeat_delta": None if sel is None or prev_repeat is None else sel - prev_repeat,
+        "repeat_ratio": None if sel is None or not prev_repeat else sel / prev_repeat,
+        "card_gifts": card_gifts, "prev_card_gifts": prev_card,
+        "card_delta": None if card_gifts is None or prev_card is None else card_gifts - prev_card,
+        "card_yoy_pct": pct_change(card_gifts, prev_card) if card_gifts is not None and prev_card is not None else None,
+        "prev_large_gifts": prev_large,
+        "large_delta": None if prev_large is None else int(len(large_rows)) - prev_large,
+        "large_prior_avg": (sum(large_count(y) for y in earlier_years) / len(earlier_years)) if earlier_years else None,
+        "million_amount": million_amount, "million_projects": int(len(over_million)),
+        "million_share": (million_amount / cash_total) if cash_total else 0.0,
+        "top_project_share": float(over_million.max() / cash_total) if len(over_million) and cash_total else None,
     }
+
+    def _snapshot(y: int) -> dict:
+        raw = df[df["year"] == y]
+        money = cash(raw)
+        ordinary = money[money["amount_ntd"] < exceptional]
+        exceptional_rows = money[money["amount_ntd"] >= exceptional]
+        large_y = money[money["amount_ntd"] >= large]
+        cards = money[money["method"] == "credit_card"] if has_method else None
+        return {
+            "year": int(y), "total": float(money["amount_ntd"].sum()),
+            "regular_total": float(ordinary["amount_ntd"].sum()),
+            "exceptional_total": float(exceptional_rows["amount_ntd"].sum()), "n_exceptional": int(len(exceptional_rows)),
+            "donors": int(raw["donor_code"].nunique()), "records": int(len(raw)), "in_kind_records": int(raw["is_in_kind"].sum()),
+            "repeat": repeat_count(y), "large_gifts": int(len(large_y)), "large_gifts_amount": float(large_y["amount_ntd"].sum()),
+            "card_gifts": None if cards is None else int(len(cards)),
+            "card_amount": None if cards is None else float(cards["amount_ntd"].sum()),
+        }
+
+    def _kpi_compare() -> list[dict]:
+        shown = sorted({y for y in (year, prev_year) if y is not None})
+        return [_snapshot(y) for y in shown]
 
     # monthly view: creation date is not receipt date, so rows whose date falls outside the report year are excluded
     cm = c.copy()
@@ -127,9 +243,10 @@ def overview(df: pd.DataFrame, year: int, exceptional: float, large: float, scop
     return {
         "year": year, "prev_year": prev_year, "years": ys, "scope": scope,
         "scope_label": t("stats.scope_all") if scope == "all" else t("stats.scope_regular", threshold=exceptional),
-        "kpis": kpis, "monthly": monthly,
+        "kpis": kpis, "kpi_compare": _kpi_compare(), "monthly": monthly,
         "bands": _rows(bands, "band", lambda i: t(f"band.{int(i)}"), list(range(len(config.BANDS)))),
         "donor_classes": _rows(scoped, "donor_class", i18n.class_label, org.DONOR_CLASSES + ["unknown"]),
+        "class_compare": class_compare(df, exceptional, scope),
         "methods": methods,
         "purpose_groups": _rows(scoped, "purpose_group", lambda g: i18n.group_label(g) if g != "unknown" else t("class.unknown"),
                                 ["annual_campaign", "university_fund", "designated", "unknown"]),

@@ -162,7 +162,7 @@ M: dict[str, str] = {
     "hl.divergence_title": "The headline and the underlying trend moved differently",
     "hl.divergence_text": "Total donations moved {total} in {year}, but ordinary giving moved {ordinary}. Plan around ordinary giving: it is the part you can influence.",
     "hl.steady_title": "Ordinary giving this year",
-    "hl.steady_text": "Ordinary giving moved {ordinary} against last year, and the total moved {total}.",
+    "hl.steady_text": "Ordinary giving moved {ordinary} against {compare}, and the total moved {total}.",
     "hl.concentration_title": "A few donors carry a large share of the money",
     "hl.concentration_text": "In {year}, the top 1% of donors gave {all} of all money. Counting only ordinary gifts, the top 1% gave {ordinary}.",
     "hl.first_gift_title": "Most first-time donors do not give a second time",
@@ -231,6 +231,14 @@ M: dict[str, str] = {
     "ai.demo.first_gift": "Of {n} first-time donors in {year}, {k} ({rate}) gave again the next year. Donors who had already given before came back {repeat} of the time.",
     "ai.demo.concentration": "The top 1% of donors gave {all} of all money, and {ordinary} of ordinary giving.",
     "ai.demo.general": "In {year} total giving was {total} and ordinary giving was {ordinary}, a change of {change} on the year before.",
+    "ai.demo.base": "Donors who gave again: {repeat}. Credit-card gifts: {cards}. Large gifts: {large}.",
+    "ai.demo.base_nocard": "Donors who gave again: {repeat}. Large gifts: {large}. The records have no payment-method column, so credit-card gifts are not counted.",
+    "ai.demo.accounts": "The gift records do not include the accounting office's cash receipts or cash surplus, so those amounts are left out.",
+    "ai.demo.rec1": "Consider a steady relationship with people who make large gifts, so one exceptional gift carries less of the total.",
+    "ai.demo.rec2": "Consider keeping reminders for people who give again, and staying in touch with the units that receive the gifts.",
+    "ai.demo.rec3": "Keep exceptional gifts separate from ordinary giving, and compare with the year you chose.",
+    "ai.demo.rec4": "For projects that are slowing down, consider how they are presented, or whether some should be combined.",
+    "ai.demo.rec5": "Overseas alumni appeals can wait until the needed registration is in place.",
     "ai.demo.brief": "{project} welcomes support. Last year {donors} donors gave to this category, and the middle gift was NT${median:,.0f}. Typical gifts ranged from NT${low:,.0f} to NT${high:,.0f}. This is a draft for staff review.",
 
     # ---------------------------------------------------------------- donor roll
@@ -289,4 +297,6 @@ M: dict[str, str] = {
     "err.brief_not_found": "Brief not found",
     "err.unknown_purpose": "Unknown purpose label: {label}",
     "err.unknown_class": "Unknown donor class: {label}",
+    "err.band_order": "The lower amount has to be below the upper amount.",
+    "err.class_range": "The lowest amount cannot be above the highest.",
 }

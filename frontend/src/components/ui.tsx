@@ -83,9 +83,9 @@ export function Card({ title, sub, right, icon, ai, help, children, className = 
   );
 }
 
-export function Accordion({ title, children, open }: { title: string; children: ReactNode; open?: boolean }) {
+export function Accordion({ title, children, open, onToggle }: { title: string; children: ReactNode; open?: boolean; onToggle?: (open: boolean) => void }) {
   return (
-    <details className="acc" open={open}>
+    <details className="acc" open={open} onToggle={(e) => onToggle?.(e.currentTarget.open)}>
       <summary>{title}</summary>
       <div className="body">{children}</div>
     </details>

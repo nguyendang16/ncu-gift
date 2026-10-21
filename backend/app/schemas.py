@@ -62,6 +62,22 @@ class Kpis(BaseModel):
     retained_donors: int | None
     returning_donors: int | None
     repeat_selected: int | None
+    prev_total: float | None = None
+    prev_regular_total: float | None = None
+    prev_repeat: int | None = None
+    repeat_delta: int | None = None
+    repeat_ratio: float | None = None
+    card_gifts: int | None = None
+    prev_card_gifts: int | None = None
+    card_delta: int | None = None
+    card_yoy_pct: float | None = None
+    prev_large_gifts: int | None = None
+    large_delta: int | None = None
+    large_prior_avg: float | None = None
+    million_amount: float = 0
+    million_projects: int = 0
+    million_share: float = 0
+    top_project_share: float | None = None
 
 
 class MonthRow(BaseModel):
@@ -77,6 +93,32 @@ class ProjectTotal(BaseModel):
     amount: float
 
 
+class ClassYear(BaseModel):
+    year: int
+    amounts: list[float]
+
+
+class ClassCompare(BaseModel):
+    labels: list[str]
+    series: list[ClassYear]
+
+
+class KpiYear(BaseModel):
+    year: int
+    total: float
+    regular_total: float
+    exceptional_total: float
+    n_exceptional: int
+    donors: int
+    records: int
+    in_kind_records: int
+    repeat: int | None = None
+    large_gifts: int
+    large_gifts_amount: float
+    card_gifts: int | None = None
+    card_amount: float | None = None
+
+
 class OverviewOut(BaseModel):
     year: int
     prev_year: int | None
@@ -84,9 +126,11 @@ class OverviewOut(BaseModel):
     scope: str
     scope_label: str
     kpis: Kpis
+    kpi_compare: list[KpiYear]
     monthly: list[MonthRow]
     bands: list[Breakdown]
     donor_classes: list[Breakdown]
+    class_compare: ClassCompare
     methods: list[Breakdown]
     purpose_groups: list[Breakdown]
     purpose_subs: list[Breakdown]
@@ -101,6 +145,9 @@ class TrendRow(BaseModel):
     regular: float
     exceptional: float
     n_exceptional: int
+    band_under: float = 0
+    band_mid: float = 0
+    band_over: float = 0
     donors: int
     records: int
     total_yoy_pct: float | None
@@ -672,9 +719,14 @@ class InsightsIn(BaseModel):
     large_threshold: float | None = None
 
 
+class Observation(BaseModel):
+    key: str
+    text: str
+
+
 class InsightsOut(AiMeta):
-    headline: str
-    points: list[str]
+    observations: list[Observation]
+    recommendations: list[str]
     verification: NumberCheck
     sent: str
 

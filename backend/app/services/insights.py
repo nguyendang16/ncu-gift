@@ -59,16 +59,15 @@ def concentration(df: pd.DataFrame, year: int, exceptional: float) -> dict:
             "curve": [{"pct": p, "all": _share_at(allg, p), "ordinary": _share_at(ordg, p)} for p in GRID]}
 
 
-def bridge(df: pd.DataFrame, year: int, exceptional: float) -> dict:
-    """Waterfall from last year's total to this year's. Ordinary giving is split by what each donor did; exceptional gifts
+def bridge(df: pd.DataFrame, year: int, exceptional: float, compare_year: int | None = None) -> dict:
+    """Waterfall from the comparison year to this year. Ordinary giving is split by what each donor did; exceptional gifts
     are one separate step. The steps add up exactly (asserted in tests)."""
     ys = years_of(df)
-    prevs = [y for y in ys if y < year]
-    if year not in ys or not prevs:
+    prev = stats.resolve_compare(ys, year, compare_year)
+    if year not in ys or prev is None:
         raise InsufficientData(t("bridge.no_prev"))
-    prev = max(prevs)
     A = active_sets(df)
-    before_year = set().union(*[A[y] for y in A if y < year])
+    before_year = set().union(*(A[y] for y in A if y < year)) if any(y < year for y in A) else set()
     cur_o, prev_o = _totals(df, year, exceptional), _totals(df, prev, exceptional)
     cur_all = cash(df[df["year"] == year])["amount_ntd"]
     prev_all = cash(df[df["year"] == prev])["amount_ntd"]
@@ -113,13 +112,9 @@ def purpose_tree(df: pd.DataFrame, year: int, exceptional: float, scope: str = "
         c = c[c["amount_ntd"] < exceptional]
     out = []
 
-    def leaves(frame: pd.DataFrame, limit: int = 8) -> list[dict]:
+    def leaves(frame: pd.DataFrame) -> list[dict]:
         by = frame.groupby("project_name", dropna=False)["amount_ntd"].sum().sort_values(ascending=False)
-        rows = [{"name": i18n.project_label(k) if isinstance(k, str) else t("roll.unspecified"), "value": float(v)} for k, v in by.items()]
-        if len(rows) > limit:
-            rest = sum(r["value"] for r in rows[limit:])
-            rows = rows[:limit] + [{"name": t("tree.other"), "value": rest}]
-        return rows
+        return [{"name": i18n.project_label(k) if isinstance(k, str) else t("roll.unspecified"), "value": float(v)} for k, v in by.items()]
 
     for group in ("designated", "university_fund", "annual_campaign"):
         g = c[c["purpose_group"] == group]
@@ -130,14 +125,14 @@ def purpose_tree(df: pd.DataFrame, year: int, exceptional: float, scope: str = "
             for sub in org.PURPOSE_SUBS:
                 sg = g[g["purpose_sub"] == sub]
                 if len(sg):
-                    kids.append({"name": i18n.purpose_label(sub), "value": float(sg["amount_ntd"].sum()), "children": leaves(sg, 5)})
+                    kids.append({"name": i18n.purpose_label(sub), "value": float(sg["amount_ntd"].sum()), "children": leaves(sg)})
             node = {"name": i18n.group_label(group), "value": float(g["amount_ntd"].sum()), "children": kids}
         else:
             node = {"name": i18n.group_label(group), "value": float(g["amount_ntd"].sum()), "children": leaves(g)}
         out.append(node)
     other = c[c["purpose_group"].isna()]
     if len(other):
-        out.append({"name": t("class.unknown"), "value": float(other["amount_ntd"].sum()), "children": leaves(other, 4)})
+        out.append({"name": t("class.unknown"), "value": float(other["amount_ntd"].sum()), "children": leaves(other)})
     return out
 
 
@@ -168,17 +163,25 @@ def _ntd_compact(x: float) -> str:
     return f"NT${x:,.0f}"
 
 
-def highlights(df: pd.DataFrame, year: int, exceptional: float) -> list[dict]:
+def highlights(df: pd.DataFrame, year: int, exceptional: float, compare_year: int | None = None) -> list[dict]:
     """Rule-based, not AI: each card states a finding computed from the data and points to the page that explains it."""
     cards: list[dict] = []
     tr = {r["year"]: r for r in stats.trend(df, exceptional)}
     cur = tr.get(year)
-    if cur and cur["total_yoy_pct"] is not None and cur["regular_yoy_pct"] is not None:
+    compare = stats.resolve_compare(sorted(tr), year, compare_year)
+    base = tr.get(compare) if compare is not None else None
+    if cur and base:
+        a = None if not base["total"] else (cur["total"] - base["total"]) / base["total"] * 100
+        b = None if not base["regular"] else (cur["regular"] - base["regular"]) / base["regular"] * 100
+    elif cur:
         a, b = cur["total_yoy_pct"], cur["regular_yoy_pct"]
+    else:
+        a = b = None
+    if cur and a is not None and b is not None:
         diverge = (a < 0) != (b < 0) or abs(a - b) > 30
         cards.append({"id": "divergence", "tone": "warn" if diverge else ("good" if b >= 0 else "warn"), "icon": "trend",
                       "title": t("hl.divergence_title" if diverge else "hl.steady_title"),
-                      "text": t("hl.divergence_text" if diverge else "hl.steady_text", total=_signed(a), ordinary=_signed(b), year=year),
+                      "text": t("hl.divergence_text" if diverge else "hl.steady_text", total=_signed(a), ordinary=_signed(b), year=year, compare=compare or year),
                       "link": "/"})
     try:
         conc = concentration(df, year, exceptional)

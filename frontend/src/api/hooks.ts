@@ -3,6 +3,8 @@ import { useLang } from "../i18n";
 import { api } from "./client";
 import type { AgentOut, AcceptOut, ApplyRefOut, RefStatus, AiCallDetail, AiCallRow, AiSettingsIn, AiStatus, AiTest, AiTurn, AskOut, Bridge, Brief, Capability, ClassifyOut, Concentration, Highlight, InsightsOut, MapOut, Season, TreeNode, ConfirmOut, Dataset, Journey, Leak, MatchEval, Meta, Overview, Preview, Rank, ReviewItem, Risk, Roll, Scenario, ScenarioIn, Solicited, Target, TrendRow } from "./types";
 
+type ClassCompare = Overview["class_compare"];
+
 // Every query key carries the language: the server translates the text it generates, so switching language refetches.
 const on = (ds?: number) => ds !== undefined;
 
@@ -14,15 +16,25 @@ export function useDatasets() {
   const lang = useLang();
   return useQuery({ queryKey: ["datasets", lang], queryFn: () => api<Dataset[]>("/api/datasets") });
 }
-export function useTrend(ds: number | undefined, exceptional: number) {
+export function useTrend(ds: number | undefined, exceptional: number, bands?: { low: number; high: number }) {
   const lang = useLang();
-  return useQuery({ queryKey: ["trend", lang, ds, exceptional], enabled: on(ds), queryFn: () => api<TrendRow[]>("/api/trend", { params: { dataset_id: ds, exceptional_threshold: exceptional } }) });
+  return useQuery({
+    queryKey: ["trend", lang, ds, exceptional, bands], enabled: on(ds) && !!bands, placeholderData: keepPreviousData,
+    queryFn: () => api<TrendRow[]>("/api/trend", { params: { dataset_id: ds, exceptional_threshold: exceptional, band_low: bands?.low, band_high: bands?.high } }),
+  });
 }
-export function useOverview(ds: number | undefined, p: { year?: number; scope: string; exceptional: number; large: number; returnDef: string }) {
+export function useClassCompare(ds: number | undefined, p: { scope: string; exceptional: number; min?: number; max?: number } | null) {
+  const lang = useLang();
+  return useQuery({
+    queryKey: ["class-compare", lang, ds, p], enabled: on(ds) && !!p, placeholderData: keepPreviousData,
+    queryFn: () => api<ClassCompare>("/api/class-compare", { params: { dataset_id: ds, scope: p?.scope, exceptional_threshold: p?.exceptional, amount_min: p?.min, amount_max: p?.max } }),
+  });
+}
+export function useOverview(ds: number | undefined, p: { year?: number; compareYear?: number; scope: string; exceptional: number; large: number; returnDef: string }) {
   const lang = useLang();
   return useQuery({
     queryKey: ["overview", lang, ds, p], enabled: on(ds), placeholderData: keepPreviousData,
-    queryFn: () => api<Overview>("/api/overview", { params: { dataset_id: ds, year: p.year, scope: p.scope, exceptional_threshold: p.exceptional, large_threshold: p.large, return_definition: p.returnDef } }),
+    queryFn: () => api<Overview>("/api/overview", { params: { dataset_id: ds, year: p.year, compare_year: p.compareYear, scope: p.scope, exceptional_threshold: p.exceptional, large_threshold: p.large, return_definition: p.returnDef } }),
   });
 }
 export function useJourney(ds?: number) {
@@ -98,9 +110,9 @@ export function useConcentration(ds: number | undefined, year: number | undefine
   const lang = useLang();
   return useQuery({ queryKey: ["concentration", lang, ds, year, exceptional], enabled: on(ds), retry: false, queryFn: () => api<Concentration>("/api/concentration", { params: { dataset_id: ds, year, exceptional_threshold: exceptional } }) });
 }
-export function useBridge(ds: number | undefined, year: number | undefined, exceptional: number) {
+export function useBridge(ds: number | undefined, year: number | undefined, exceptional: number, compareYear?: number) {
   const lang = useLang();
-  return useQuery({ queryKey: ["bridge", lang, ds, year, exceptional], enabled: on(ds), retry: false, queryFn: () => api<Bridge>("/api/bridge", { params: { dataset_id: ds, year, exceptional_threshold: exceptional } }) });
+  return useQuery({ queryKey: ["bridge", lang, ds, year, compareYear, exceptional], enabled: on(ds), retry: false, queryFn: () => api<Bridge>("/api/bridge", { params: { dataset_id: ds, year, compare_year: compareYear, exceptional_threshold: exceptional } }) });
 }
 export function useSeasonality(ds: number | undefined, exceptional: number) {
   const lang = useLang();
@@ -110,9 +122,9 @@ export function usePurposeTree(ds: number | undefined, year: number | undefined,
   const lang = useLang();
   return useQuery({ queryKey: ["tree", lang, ds, year, exceptional], enabled: on(ds), retry: false, queryFn: () => api<TreeNode[]>("/api/purpose-tree", { params: { dataset_id: ds, year, exceptional_threshold: exceptional } }) });
 }
-export function useHighlights(ds: number | undefined, year: number | undefined, exceptional: number) {
+export function useHighlights(ds: number | undefined, year: number | undefined, exceptional: number, compareYear?: number) {
   const lang = useLang();
-  return useQuery({ queryKey: ["highlights", lang, ds, year, exceptional], enabled: on(ds), retry: false, queryFn: () => api<Highlight[]>("/api/highlights", { params: { dataset_id: ds, year, exceptional_threshold: exceptional } }) });
+  return useQuery({ queryKey: ["highlights", lang, ds, year, compareYear, exceptional], enabled: on(ds), retry: false, queryFn: () => api<Highlight[]>("/api/highlights", { params: { dataset_id: ds, year, compare_year: compareYear, exceptional_threshold: exceptional } }) });
 }
 
 // ---------------------------------------------------------------- AI

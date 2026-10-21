@@ -1,5 +1,5 @@
 /** Chart option builders. Each takes the active language's formatters so every label, axis and tooltip follows it. */
-import type { Bridge, Breakdown, Concentration, Journey, RiskPoint, Scenario, Season, TrendRow, TreeNode } from "../api/types";
+import type { Bridge, Breakdown, Concentration, Journey, RiskPoint, Scenario, Season, TrendRow } from "../api/types";
 import type { Fmt } from "../i18n";
 import type { Key } from "../i18n/en";
 import { C, PALETTE, axisText, baseOption, yMoney } from "./chart";
@@ -8,15 +8,39 @@ export type T = (key: Key, params?: Record<string, string | number>) => string;
 const tip = (fmt: Fmt) => ({ valueFormatter: (v: number) => fmt.ntd(v) });
 
 /** Ordinary and exceptional giving stacked, with the number of donors as a line on its own axis. */
-export function comboOption(rows: TrendRow[], fmt: Fmt, t: T) {
+export function comboOption(rows: TrendRow[], cuts: { low: number; high: number }, fmt: Fmt, t: T) {
   const b = baseOption();
+  const under = t("series.band_under", { amount: fmt.compact(cuts.low) });
+  const mid = t("series.band_mid", { low: fmt.compact(cuts.low), high: fmt.compact(cuts.high) });
+  const over = t("series.band_over", { amount: fmt.compact(cuts.high) });
+  const share = (value: number, total: number) => (total > 0 ? Math.round(value / total * 100) : 0);
+  const inside = (color: string) => ({
+    show: true, color, fontSize: 11, fontWeight: 650,
+    formatter: (p: { dataIndex: number; value: number }) => {
+      const total = rows[p.dataIndex]?.total ?? 0;
+      if (!p.value || !total || p.value / total < 0.08) return "";
+      return `${fmt.compact(p.value)}\n${share(p.value, total)}%`;
+    },
+  });
+  const band = (name: string, key: "band_under" | "band_mid" | "band_over", color: string, label: string, radius: number[]) => ({
+    name, type: "bar" as const, stack: "t", barMaxWidth: 72,
+    data: rows.map((r) => (r[key] > 0 ? r[key] : null)),
+    itemStyle: { color, borderRadius: radius },
+    label: inside(label),
+  });
   return {
-    ...b, tooltip: { ...b.tooltip, ...tip(fmt) }, grid: { ...b.grid, right: 48 },
+    ...b, tooltip: { ...b.tooltip, ...tip(fmt) },
+    grid: { left: 6, right: 48, top: 28, bottom: 52, containLabel: true },
+    legend: { bottom: 0, left: "center", icon: "roundRect" as const, itemWidth: 12, itemHeight: 12, textStyle: { color: C.muted, fontSize: 12 }, data: [under, mid, over, t("series.donors")] },
     xAxis: { type: "category" as const, data: rows.map((r) => String(r.year)), axisLabel: axisText },
     yAxis: [yMoney(fmt.axisMoney), { type: "value" as const, axisLabel: axisText, splitLine: { show: false }, name: "", min: 0 }],
     series: [
-      { name: t("series.ordinary"), type: "bar" as const, stack: "t", data: rows.map((r) => r.regular), itemStyle: { color: C.regular, borderRadius: [0, 0, 0, 0] }, barMaxWidth: 64 },
-      { name: t("series.exceptional"), type: "bar" as const, stack: "t", data: rows.map((r) => r.exceptional), itemStyle: { color: C.exceptional, borderRadius: [6, 6, 0, 0] }, barMaxWidth: 64 },
+      band(under, "band_under", "#4c1d95", "#fff", [0, 0, 0, 0]),
+      band(mid, "band_mid", "#9333ea", "#fff", [0, 0, 0, 0]),
+      band(over, "band_over", "#d4a017", "#3f2d00", [6, 6, 0, 0]),
+      { name: "total", type: "bar" as const, stack: "t", data: rows.map(() => 0), tooltip: { show: false },
+        itemStyle: { color: "transparent" }, emphasis: { disabled: true },
+        label: { show: true, position: "top" as const, color: C.ink, fontWeight: 650, fontSize: 12, formatter: (p: { dataIndex: number }) => fmt.compact(rows[p.dataIndex]?.total ?? 0) } },
       { name: t("series.donors"), type: "line" as const, yAxisIndex: 1, data: rows.map((r) => r.donors), symbol: "circle", symbolSize: 9, lineStyle: { width: 3, color: C.indigo }, itemStyle: { color: C.indigo },
         tooltip: { valueFormatter: (v: number) => fmt.int(v) } },
     ],
@@ -59,6 +83,43 @@ export function waterfallOption(b: Bridge, mode: "ordinary" | "all", fmt: Fmt, t
   };
 }
 
+export function kpiCompareOption(labels: string[], series: { year: number; values: (number | null)[] }[], fmt: Fmt, money: boolean) {
+  const b = baseOption();
+  const colors = [C.violet, C.indigo, C.regular, C.sky, C.exceptional];
+  const format = (v: number) => (money ? fmt.axisMoney(v) : fmt.int(v));
+  return {
+    ...b,
+    tooltip: { ...b.tooltip, valueFormatter: (v: number) => (v == null ? "–" : money ? fmt.ntd(v) : fmt.int(v)) },
+    grid: { left: 8, right: 12, top: 24, bottom: 36, containLabel: true },
+    legend: { bottom: 0, left: "center", icon: "roundRect" as const, itemWidth: 12, itemHeight: 12, textStyle: { color: C.muted, fontSize: 12 } },
+    xAxis: { type: "category" as const, data: labels, axisLabel: { ...axisText, interval: 0 } },
+    yAxis: money ? yMoney(fmt.axisMoney) : { type: "value" as const, min: 0, axisLabel: { ...axisText, formatter: (v: number) => fmt.int(v) }, splitLine: { lineStyle: { color: C.line, type: "dashed" as const } } },
+    series: series.map((row, index) => ({
+      name: String(row.year), type: "bar" as const, data: row.values, barMaxWidth: 36, barGap: "12%",
+      itemStyle: { color: colors[index % colors.length], borderRadius: [4, 4, 0, 0] },
+      label: { show: true, position: "top" as const, color: C.ink, fontSize: 11, formatter: (p: { value: number | null }) => (p.value ? format(p.value) : "") },
+    })),
+  };
+}
+
+export function classCompareOption(compare: { labels: string[]; series: { year: number; amounts: number[] }[] }, fmt: Fmt) {
+  const b = baseOption();
+  const colors = [C.violet, C.indigo, C.regular, C.sky, C.exceptional];
+  return {
+    ...b,
+    tooltip: { ...b.tooltip, ...tip(fmt) },
+    grid: { left: 8, right: 12, top: 24, bottom: 36, containLabel: true },
+    legend: { bottom: 0, left: "center", icon: "roundRect" as const, itemWidth: 12, itemHeight: 12, textStyle: { color: C.muted, fontSize: 12 } },
+    xAxis: { type: "category" as const, data: compare.labels, axisLabel: { ...axisText, interval: 0 } },
+    yAxis: yMoney(fmt.axisMoney),
+    series: compare.series.map((row, index) => ({
+      name: String(row.year), type: "bar" as const, data: row.amounts, barMaxWidth: 28, barGap: "12%",
+      itemStyle: { color: colors[index % colors.length], borderRadius: [4, 4, 0, 0] },
+      label: { show: true, position: "top" as const, color: C.ink, fontSize: 11, formatter: (p: { value: number }) => (p.value ? fmt.axisMoney(p.value) : "") },
+    })),
+  };
+}
+
 export function donutOption(rows: Breakdown[], fmt: Fmt) {
   const data = rows.filter((r) => (r.amount ?? 0) > 0).map((r) => ({ name: r.label, value: r.amount as number }));
   return {
@@ -66,17 +127,6 @@ export function donutOption(rows: Breakdown[], fmt: Fmt) {
     tooltip: { trigger: "item" as const, confine: true, formatter: (p: { name: string; value: number; percent: number }) => `${p.name}<br/><b>${fmt.ntd(p.value)}</b> · ${p.percent}%` },
     series: [{ type: "pie" as const, radius: ["46%", "70%"], center: ["50%", "50%"], data, avoidLabelOverlap: true,
       itemStyle: { borderColor: "#fff", borderWidth: 3, borderRadius: 6 }, label: { color: C.ink, fontSize: 12, formatter: "{b}\n{d}%" }, labelLine: { length: 8, length2: 8 } }],
-  };
-}
-
-export function treemapOption(tree: TreeNode[], fmt: Fmt) {
-  return {
-    animation: false, color: PALETTE, textStyle: { fontFamily: "inherit" },
-    tooltip: { confine: true, formatter: (p: { name: string; value: number }) => `${p.name}<br/><b>${fmt.ntd(p.value)}</b>` },
-    series: [{ type: "treemap" as const, data: tree, roam: false, nodeClick: false, breadcrumb: { show: false }, width: "100%", height: "100%", top: 0, bottom: 0, left: 0, right: 0,
-      label: { show: true, color: "#fff", fontSize: 12, formatter: (p: { name: string; value: number }) => `${p.name}\n${fmt.compact(p.value)}` },
-      upperLabel: { show: true, height: 24, color: "#fff", fontSize: 12, fontWeight: 600 },
-      levels: [{ itemStyle: { borderColor: "#fff", borderWidth: 4, gapWidth: 4 } }, { colorSaturation: [0.45, 0.7], itemStyle: { borderColorSaturation: 0.6, gapWidth: 2, borderWidth: 2 } }, { colorSaturation: [0.35, 0.55] }] }],
   };
 }
 
