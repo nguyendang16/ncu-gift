@@ -21,6 +21,12 @@ def _large(v: float | None) -> float:
     return v if v is not None else config.DEFAULT_LARGE_THRESHOLD
 
 
+@router.get("/version")
+def version():
+    """What this running server can do. The interface checks it and says so when the server was started before an update."""
+    return {"features": ["agent_links", "conversations", "plan_to_raise", "find_feature", "insight_actions"]}
+
+
 @router.get("/status", response_model=schemas.AiStatus)
 def status(session: Session = Depends(get_session)):
     cfg, s = get_config(), features.effective_settings(session)

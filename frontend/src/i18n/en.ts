@@ -592,6 +592,9 @@ export const en = {
   "ai.actions_title": "Recommended next actions",
   "ai.act.steps": "What to do this month",
   "ai.act.effect": "Expected effect:",
+  "stale.title": "The server is running old code.",
+  "stale.text": "Some new features will not work until you stop it (Ctrl+C in the terminal) and start it again with",
+  "ai.go_to": "Go to",
 } as const;
 
 export type Key = keyof typeof en;

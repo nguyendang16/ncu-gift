@@ -132,6 +132,13 @@ export function useAiStatus() {
   const lang = useLang();
   return useQuery({ queryKey: ["ai-status", lang], queryFn: () => api<AiStatus>("/api/ai/status"), staleTime: 5_000 });
 }
+const NEEDED = ["agent_links", "conversations", "plan_to_raise", "find_feature", "insight_actions"];
+/** True when the running API is older than this page (it was started before an update and never restarted). */
+export function useServerIsStale() {
+  const q = useQuery({ queryKey: ["ai-version"], retry: false, staleTime: 60_000, queryFn: () => api<{ features: string[] }>("/api/ai/version") });
+  if (q.isPending) return false;
+  return q.isError || NEEDED.some((f) => !q.data?.features.includes(f));
+}
 export function useAiSettings() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (b: AiSettingsIn) => api<AiStatus>("/api/ai/settings", { method: "PUT", body: b }), onSuccess: () => qc.invalidateQueries({ queryKey: ["ai-status"] }) });

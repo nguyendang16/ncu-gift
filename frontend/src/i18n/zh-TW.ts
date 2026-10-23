@@ -588,4 +588,7 @@ export const zhTW: Record<BaseKey, string> & Partial<Record<Key, string>> = {
   "ai.actions_title": "建議的下一步行動",
   "ai.act.steps": "本月可以做的事",
   "ai.act.effect": "預期效果：",
+  "stale.title": "伺服器仍在執行舊版程式。",
+  "stale.text": "部分新功能要等你停止它（在終端機按 Ctrl+C）並重新執行下列指令後才能使用：",
+  "ai.go_to": "前往",
 };

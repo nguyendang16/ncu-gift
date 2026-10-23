@@ -46,6 +46,20 @@ function StepCard({ s, scope, onNavigate }: { s: AgentStep; scope: string; onNav
   );
 }
 
+/** The pages the answer points to, right under the text, so they are never buried under the details. */
+function GoRow({ steps, onNavigate }: { steps: AgentStep[]; onNavigate?: () => void }) {
+  const { t } = useI18n();
+  const seen = new Set<string>();
+  const links = steps.flatMap((s) => s.links ?? []).filter((l) => (seen.has(l.label) ? false : (seen.add(l.label), true)));       // one button per page: the first, most specific link wins
+  if (links.length === 0) return null;
+  return (
+    <div className="go-row">
+      <span className="go-l">{t("ai.go_to")}</span>
+      {links.map((l) => <Link key={l.to} className="btn go" to={l.to} onClick={onNavigate}>{l.label} →</Link>)}
+    </div>
+  );
+}
+
 const turnsOf = (c: ConversationOut): Turn[] => {
   const out: Turn[] = [];
   let q = "";
@@ -147,6 +161,7 @@ export function AgentChat({ initialId, onNavigate, compact }: { initialId?: numb
                     {x.verification && <VerifyBadge v={x.verification} />}
                     {x.demo && <span>{t("ai.by_demo")}</span>}
                   </div>
+                  <GoRow steps={x.steps} onNavigate={onNavigate} />
                   {x.steps.length > 0 && (
                     <div className="steps" style={{ whiteSpace: "normal" }}>
                       <div className="steps-h">{t("ai.how")}</div>

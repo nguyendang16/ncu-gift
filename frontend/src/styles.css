@@ -367,3 +367,11 @@ a.cite:hover { background: var(--ai); color: #fff; }
 .act ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
 .act-effect { background: var(--ai-weak); border-radius: 10px; padding: 8px 12px; color: #3b0764; }
 .act .btn { justify-self: start; text-decoration: none; margin-top: 4px; }
+
+.stale { background: #fff7ed; border: 1px solid #fdba74; border-radius: 12px; color: #7c2d12; padding: 12px 16px; margin-bottom: 16px; font-size: 0.95rem; }
+.stale code { background: #ffedd5; padding: 1px 6px; border-radius: 6px; }
+
+.go-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--ai-line); white-space: normal; }
+.go-l { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; }
+.btn.go { min-height: 34px; padding: 4px 12px; font-size: 0.88rem; text-decoration: none; background: var(--ai-weak); border-color: var(--ai-line); color: var(--ai-2); font-weight: 600; }
+.btn.go:hover { background: var(--ai); color: #fff; }

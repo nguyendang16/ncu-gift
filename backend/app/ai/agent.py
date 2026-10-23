@@ -329,7 +329,7 @@ def plan_to_raise(c, a) -> ToolOut:
         shown = need if key != "mult" else (need - 1) * 100
         who = people.get(key)
         extra = None if who is None else round(who * (need / 100 if key in ("r1", "r2") else (need - 1)))
-        levers.append({"lever": name, "reaches_target_alone": True, "needed_setting": round(shown, 1), "setting_unit": {"r1": "percentage points", "r2": "percentage points",
+        levers.append({"lever": name, "reaches_target_alone": True, "what_it_takes": t(f"agent.plan.need_{key}", x=f"{shown:.1f}".rstrip("0").rstrip(".")), "needed_setting": round(shown, 1), "setting_unit": {"r1": "percentage points", "r2": "percentage points",
                        "mult": "% more new donors than last year", "rec": "% of retained donors moved to recurring giving"}[key], "about_extra_donors": extra})
         rows.append([t(f"agent.lever.{key}"), t(f"agent.plan.need_{key}", x=f"{shown:.1f}".rstrip("0").rstrip(".")), "" if extra is None else f"≈ {extra}", t("agent.plan.yes")])
     # a balanced effort: every lever scaled together until the goal is met
@@ -341,7 +341,9 @@ def plan_to_raise(c, a) -> ToolOut:
         bs = {"r1": round(min(full["r1"] * sc, 20), 1), "r2": round(min(full["r2"] * sc, 10), 1), "mult": round(1 + min((full["mult"] - 1) * sc, 0.5), 2),
               "rec": round(min(full["rec"] * sc, 30), 1)}
         balanced = {"first_time_retention_uplift_points": bs["r1"], "repeat_retention_uplift_points": bs["r2"], "new_donor_inflow_multiplier": bs["mult"],
-                    "new_donors_percent_more_than_last_year": round((bs["mult"] - 1) * 100, 1), "recurring_conversion_percent": bs["rec"], "adds_about": _m(_delta(c, **bs)[0]),
+                    "new_donors_percent_more_than_last_year": round((bs["mult"] - 1) * 100, 1), "recurring_conversion_percent": bs["rec"],
+                    "described_as": [t("agent.plan.need_r1", x=f"{bs['r1']:g}"), t("agent.plan.need_r2", x=f"{bs['r2']:g}"),
+                                     t("agent.plan.need_mult", x=f"{(bs['mult'] - 1) * 100:.1f}".rstrip("0").rstrip(".")), t("agent.plan.need_rec", x=f"{bs['rec']:g}")], "adds_about": _m(_delta(c, **bs)[0]),
                     "meaning": "all four levers moved together; a demanding but plausible effort when the share of stretch used is below 100%",
                     "share_of_a_demanding_effort_used": round(min(sc, 2.0) * 100)}
     else:
@@ -438,7 +440,7 @@ AGENT_SYSTEM = ("You are the analyst inside NCU GIFT, a fundraising analytics to
                 "- For goal questions ('I want to raise about NT$1M', 'how do we reach X', 'what should we do to ...'), call plan_to_raise with the amount "
                 "(1 million = 1000000; 萬 = 10000) and, only if the person names one, a focus target. The goal means EXTRA ordinary giving on top of the baseline: say so. "
                 "Answer in four short parts: what the goal means; the two or three most realistic options with their figures in plain words (people, gifts, shares), "
-                "saying plainly when one lever alone cannot reach it; one recommended combination quoting the balanced-effort settings exactly as given (never convert a multiplier into a percentage yourself: the tool gives both); the next three concrete actions, "
+                "saying plainly when one lever alone cannot reach it; one recommended combination quoting the balanced-effort `described_as` lines and each lever's `what_it_takes` exactly as given (never convert, re-word or re-interpret them: '3.7% more new donors' is not '3.7 times'); the next three concrete actions, "
                 "taken from `concrete_next_actions` in the tool result (say what to do, with whom or what, and in which page; never generic advice like 'review the options'). "
                 "The app adds the Open buttons. Up to about 220 words for these.\n"
                 "- For 'where can I see ...' or 'how do I ...' questions, call find_feature and describe each page in one or two sentences: what it shows and how to use it. "

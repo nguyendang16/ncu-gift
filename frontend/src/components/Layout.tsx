@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { useAiStatus } from "../api/hooks";
+import { useAiStatus, useServerIsStale } from "../api/hooks";
 import { useApp } from "../context/AppContext";
 import { LANGS, useI18n } from "../i18n";
 import type { Key } from "../i18n/en";
@@ -36,6 +36,7 @@ export default function Layout() {
   const { datasets, dataset, setDatasetId, settings, setSettings } = useApp();
   const { t, fmt } = useI18n();
   const ai = useAiStatus().data;
+  const stale = useServerIsStale();
   const dot = ai?.ready ? (ai.demo ? "demo" : "on") : "";
   return (
     <div className="app">
@@ -89,7 +90,14 @@ export default function Layout() {
           {dataset?.is_mock && <span className="mock-tag" title={t("topbar.mock_title")}>● {t("topbar.mock")}</span>}
           <LangSwitch />
         </header>
-        <main className="content"><Outlet /></main>
+        <main className="content">
+          {stale && (
+            <div className="stale" role="alert">
+              <b>{t("stale.title")}</b> {t("stale.text")} <code>make dev</code>
+            </div>
+          )}
+          <Outlet />
+        </main>
         <AssistantDock />
       </div>
     </div>
