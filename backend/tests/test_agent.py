@@ -149,3 +149,113 @@ def test_demo_mode_works_without_a_key_in_both_languages(client, mock_id, monkey
 def test_no_key_means_no_agent(client, mock_id, monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY")
     assert ask(client, mock_id).status_code in (403, 502)
+
+
+# ------------------------------------------------------------------ conversations, planning, feature finder, actions
+
+def tool_msgs(fake, i=-1):
+    return [json.loads(m["content"]) for m in fake.calls[i]["messages"] if m.get("role") == "tool"]
+
+
+def test_conversations_are_saved_continued_reopened_and_deleted(client, mock_id):
+    from app.ai.client import set_transport
+    fake = Fake(call(("giving_by_year", {})), say("There are three years of data."), say("Still three years."))
+    set_transport(fake)
+    first = ask(client, mock_id, "How many years of data are there?").json()
+    cid = first["conversation_id"]
+    assert cid
+    second = ask(client, mock_id, "And is that enough?", conversation_id=cid).json()
+    assert second["conversation_id"] == cid
+    sent = json.dumps(fake.calls[-1]["messages"])
+    assert "How many years of data are there?" in sent and "There are three years of data." in sent          # the follow-up sees the earlier turn
+    rows = client.get("/api/ai/conversations").json()
+    mine = next(r for r in rows if r["id"] == cid)
+    assert mine["n_messages"] == 4 and mine["title"].startswith("How many years")
+    full = client.get(f"/api/ai/conversations/{cid}").json()
+    assert [m["role"] for m in full["messages"]] == ["user", "assistant", "user", "assistant"]
+    assert full["messages"][1]["steps"][0]["tool"] == "giving_by_year" and full["messages"][1]["verification"]["ok"] is True
+    assert client.delete(f"/api/ai/conversations/{cid}").json()["deleted"] == 1
+    assert client.get(f"/api/ai/conversations/{cid}").status_code == 404
+    ask(client, mock_id, "Another one")
+    assert client.delete("/api/ai/conversations").json()["deleted"] >= 1 and client.get("/api/ai/conversations").json() == []
+
+
+def test_a_goal_gets_levers_gifts_a_balanced_plan_and_concrete_next_actions(client, mock_id):
+    from app.ai.client import set_transport
+    fake = Fake(call(("plan_to_raise", {"target_ntd": 1_000_000})), lambda body: say(f"The goal is {tool_results(body)[0]['goal']['extra_ordinary_giving']['text']} extra [1]."))
+    set_transport(fake)
+    out = ask(client, mock_id, "I want to raise about NT$1M").json()
+    assert out["verification"]["ok"] and out["steps"][0]["ok"]
+    res = tool_msgs(fake)[0]
+    assert {x["lever"] for x in res["levers_each_on_its_own"]} == {"first_time_retention_uplift_pts", "repeat_retention_uplift_pts", "new_donor_inflow_multiplier", "recurring_conversion_pct"}
+    assert res["balanced_effort"]["adds_about"]["value"] >= 1_000_000 * 0.99 and res["typical_gifts"]["extra_gifts_needed_at_median"] >= 1
+    assert 1 <= len(res["concrete_next_actions"]) <= 4 and all(len(a["steps"]) == 3 for a in res["concrete_next_actions"])
+    step = out["steps"][0]
+    assert step["table"] and len(step["table"]["columns"]) == 4
+    assert any(l["to"].startswith("/strategy?r1=") for l in step["links"]) and any(l["to"] == "/risk" for l in step["links"])
+    assert not re.search(r"\bD\d{4}\b", json.dumps(fake.calls))
+
+
+def test_the_goal_can_be_for_one_purpose_and_is_clamped(client, mock_id):
+    from app.ai.client import set_transport
+    fake = Fake(call(("plan_to_raise", {"target_ntd": 5, "focus_target_id": "sub:Student clubs"})), say("Done."))
+    set_transport(fake)
+    out = ask(client, mock_id, "Raise a little for student clubs").json()
+    res = tool_msgs(fake)[0]
+    assert res["goal"]["extra_ordinary_giving"]["value"] == 100_000                                   # lowest allowed goal
+    assert res["focus"]["gifts_last_year"] >= 1 and "organisation-wide" in res["levers_scope"]
+    assert any(l["to"].startswith("/matching?target=") for l in out["steps"][0]["links"])
+
+
+def test_where_is_it_returns_open_buttons_and_numbered_how_to_lists_are_not_flagged(client, mock_id):
+    from app.ai.client import set_transport
+    fake = Fake(call(("find_feature", {"query": "who might stop giving"})),
+                say("Open At-risk donors.\n1. Start at the top of the list.\n2. Read the reason on each row."))
+    set_transport(fake)
+    out = ask(client, mock_id, "Where can I see who might stop giving?").json()
+    assert out["steps"][0]["links"][0]["to"] == "/risk" and len(out["steps"][0]["links"]) <= 3
+    assert out["verification"]["ok"] is True                                                               # "1." and "2." are list numbering, not figures
+    assert tool_msgs(fake)[0]["pages"][0]["id"] == "risk"
+
+
+def test_every_data_tool_points_to_the_page_where_the_person_can_see_it_for_themselves(client, mock_id):
+    from app.ai.client import set_transport
+    set_transport(Fake(call(("concentration", {}), ("donor_retention", {}), ("why_total_changed", {}), ("monthly_pattern", {})), say("ok")))
+    links = [s["links"][0]["to"] for s in ask(client, mock_id, "overview of everything").json()["steps"]]
+    assert links == ["/#concentration", "/journey", "/#change", "/#when"]
+
+
+def test_feature_search_and_routes():
+    from app.ai import guide
+    assert guide.search("how do I upload an excel file")[0] == "data_upload"
+    assert guide.search("who should we phone")[0] == "risk"
+    assert guide.route("strategy", r1=5) == "/strategy?r1=5" and guide.route("data_upload") == "/data?tab=upload"
+    assert guide.route("overview") == "/" and guide.route("bridge") == "/#change"
+    assert len(guide.search("")) == len(guide.FEATURES)
+
+
+def insights_reply(actions):
+    obs = [{"key": k, "text": "x"} for k in ("compare", "base", "concentration", "accounts")]
+    return say(json.dumps({"observations": obs, "recommendations": ["a", "b", "c"], "actions": actions}))
+
+
+def test_the_overview_actions_keep_the_models_choice_and_use_the_playbook_for_steps(client, mock_id):
+    from app.ai.client import set_transport
+    set_transport(Fake(insights_reply([{"candidate_id": "recurring", "why": "Recurring plans steady the income.", "now": "It is the easiest start."},
+                                         {"candidate_id": "not_a_candidate", "why": "x", "now": "y"}])))
+    r = client.post("/api/ai/insights", json={"dataset_id": mock_id, "exceptional_threshold": 10_000_000}).json()
+    ids = [a["candidate_id"] for a in r["actions"]]
+    assert ids[0] == "recurring" and "not_a_candidate" not in ids and len(ids) == len(set(ids)) and 3 <= len(ids) <= 4          # the gap is filled from the playbook
+    first = r["actions"][0]
+    assert first["why"] == "Recurring plans steady the income." and first["now"] == "It is the easiest start." and len(first["steps"]) == 3
+    assert first["expected_effect"].startswith("If ") and first["measure"].startswith("Success looks like") and first["link"]["to"] == "/strategy"
+    assert r["verification"]["ok"] is True
+
+
+def test_without_a_usable_reply_the_actions_still_come_from_the_playbook_in_both_languages(client, mock_id):
+    from app.ai.client import set_transport
+    for lang, marker in (("en", "Success looks like"), ("zh-TW", "成功的樣子")):
+        set_transport(Fake(insights_reply([])))
+        r = client.post("/api/ai/insights", json={"dataset_id": mock_id, "exceptional_threshold": 10_000_000}, headers={"Accept-Language": lang}).json()
+        assert len(r["actions"]) >= 3 and all(marker in a["measure"] and len(a["steps"]) == 3 for a in r["actions"])
+        assert r["verification"]["ok"] is True

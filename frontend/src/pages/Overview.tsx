@@ -224,12 +224,12 @@ export default function Overview() {
               </Section>
             )}</Q>
 
-            <Section title={t("sec.numbers")} desc={t("sec.numbers_desc")}>
+            <Section id="numbers" title={t("sec.numbers")} desc={t("sec.numbers_desc")}>
               {(() => {
                 const moneyLabels = [t("kpi.total_axis"), t("kpi.ordinary"), t("kpi.exceptional"), t("kpi.large_amount"), t("kpi.card_amount")];
                 const countLabels = [t("kpi.donors"), t("kpi.repeat"), t("kpi.large_count"), t("kpi.exceptional_n"), t("kpi.card")];
-                const moneySeries = o.kpi_compare.map((row) => ({ year: row.year, values: [row.total, row.regular_total, row.exceptional_total, row.large_gifts_amount, row.card_amount] }));
-                const countSeries = o.kpi_compare.map((row) => ({ year: row.year, values: [row.donors, row.repeat, row.large_gifts, row.n_exceptional, row.card_gifts] }));
+                const moneySeries = o.kpi_compare.map((row) => ({ year: row.year, values: [row.total, row.regular_total, row.exceptional_total, row.large_gifts_amount, row.card_amount ?? null] }));
+                const countSeries = o.kpi_compare.map((row) => ({ year: row.year, values: [row.donors, row.repeat ?? null, row.large_gifts, row.n_exceptional, row.card_gifts ?? null] }));
                 return (
                   <Card icon="trend" title={t("chart.kpi_title")} sub={o.kpi_compare.map((row) => row.year).join(" · ")}>
                     <div className="grid g2">
@@ -282,7 +282,7 @@ export default function Overview() {
               })()}
             </Section>
 
-            <Section title={t("sec.change")} desc={t("sec.change_desc")}>
+            <Section id="change" title={t("sec.change")} desc={t("sec.change_desc")}>
               <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))" }}>
                 <Card icon="trend" title={t("chart.total_title")} sub={t("chart.total_sub")}>
                   <div className="band-cuts">
@@ -309,7 +309,7 @@ export default function Overview() {
               </div>
             </Section>
 
-            <Section title={t("sec.where")} desc={t("sec.where_desc")}>
+            <Section id="where" title={t("sec.where")} desc={t("sec.where_desc")}>
               <div className="grid">
                 <Card icon="pie" title={t("card.classes")} sub={t("card.classes_sub", { scope: o.scope_label })}>
                   <div className="band-cuts">

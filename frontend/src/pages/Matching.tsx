@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMatchEval, useRank, useTargets } from "../api/hooks";
 import { Card, Notice, PageHeader, Q } from "../components/ui";
 import { useApp } from "../context/AppContext";
@@ -10,7 +11,8 @@ export default function Matching() {
   const { datasetId, dataset } = useApp();
   const { t, fmt } = useI18n();
   const targets = useTargets(datasetId);
-  const [target, setTarget] = useState<string | undefined>();
+  const [qs] = useSearchParams();
+  const [target, setTarget] = useState<string | undefined>(qs.get("target") ?? undefined);
   const chosen = target ?? targets.data?.find((x) => x.kind === "purpose")?.id;
   const rank = useRank(datasetId, chosen);
   const ev = useMatchEval(datasetId);

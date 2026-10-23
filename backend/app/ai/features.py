@@ -27,6 +27,7 @@ from ..services.frame import years_of
 from . import client
 from .client import AiError, LLMResponse, cost_usd
 from .config import get_config
+from . import actions as act_mod
 from .facts import build_facts
 from .safety import UnsafePayload, assert_safe
 from .verify import verify_numbers
@@ -56,7 +57,11 @@ INSIGHT_SYSTEM = ("You are the analysis assistant inside NCU GIFT. From the JSON
                   "compare covers the total and ordinary change. base covers repeat donors, credit-card gifts and large gifts when those figures exist. "
                   "concentration covers how much money sits with a few donors or projects. "
                   "accounts must say these records do not contain the accounting office cash receipts or cash surplus, and must not invent those amounts. "
-                  "recommendations: five short options staff could consider, with no number that is not already written in the facts.\n" + RULES)
+                  "recommendations: three short options staff could consider, with no number that is not already written in the facts.\n"
+                  "actions: choose the four most valuable items from facts.action_candidates (fewer if fewer exist), most valuable first, judging by the estimated effect and how "
+                  "soon it can be done. For each: candidate_id (copy it exactly); why: two plain sentences that explain the situation using only that candidate's evidence "
+                  "figures; now: one sentence on why it is worth doing now, or what stands out compared with a typical year, using only figures in the facts. "
+                  "The steps and the expected effect are written by the system: do not write them.\n" + RULES)
 BRIEF_SYSTEM = ("You help a university fundraising team. Write a short appeal draft of three short, warm, plain paragraphs, using ONLY the JSON `facts`. "
                 "Write amounts as NT$ with thousands separators and percentages as whole numbers with %. Do not invent names, dates, deadlines, tax benefits, "
                 "matching gifts or promises. End with one sentence saying this is a draft for staff review. Output only the draft text.\n" + RULES)
@@ -70,8 +75,20 @@ INSIGHT_SCHEMA = {"type": "object", "properties": {
     "observations": {"type": "array", "items": {"type": "object", "properties": {
         "key": {"type": "string", "enum": ["compare", "base", "concentration", "accounts"]}, "text": {"type": "string"}},
         "required": ["key", "text"], "additionalProperties": False}},
-    "recommendations": {"type": "array", "items": {"type": "string"}}},
-    "required": ["observations", "recommendations"], "additionalProperties": False}
+    "recommendations": {"type": "array", "items": {"type": "string"}},
+    "actions": {"type": "array", "items": {"type": "object", "properties": {
+        "candidate_id": {"type": "string"}, "why": {"type": "string"}, "now": {"type": "string"}},
+        "required": ["candidate_id", "why", "now"], "additionalProperties": False}}},
+    "required": ["observations", "recommendations", "actions"], "additionalProperties": False}
+
+
+def _schema_with_ids(ids: list[str]) -> dict:
+    """The insights schema with candidate_id limited to the candidates that exist for this dataset."""
+    import copy
+    sch = copy.deepcopy(INSIGHT_SCHEMA)
+    if ids:
+        sch["properties"]["actions"]["items"]["properties"]["candidate_id"] = {"type": "string", "enum": ids}
+    return sch
 FIELD_NAMES = list(ingest.FIELDS) + ["none"]
 MAP_SCHEMA = {"type": "object", "properties": {"columns": {"type": "array", "items": {"type": "object", "properties": {
     "column": {"type": "string"}, "field": {"type": "string", "enum": FIELD_NAMES}, "confidence": {"type": "number"}, "reason": {"type": "string"}},
@@ -215,12 +232,39 @@ def insights(session: Session, dataset_id: int, df: pd.DataFrame, *, year: int |
     s = gate(session)
     year = year or years_of(df)[-1]
     facts = build_facts(df, year, exceptional, large, share_project_names=s.share_project_names)
+    pending = session.query(ReviewItem).filter(ReviewItem.dataset_id == dataset_id, ReviewItem.status == "pending").count()
+    cands = act_mod.candidates(df, year, exceptional, large, pending_review=pending)
+    facts["action_candidates"] = act_mod.public(cands)
+    by_id = {c["id"]: c for c in cands}
     payload = {"task": "Summarise what matters most.", "facts": facts}
     system = INSIGHT_SYSTEM.format(language=t("ai.lang_name"))
     known = known_identifiers(session, dataset_id)
+    schema = _schema_with_ids(list(by_id))
+
+    def build_actions(obj: dict) -> list[dict]:
+        """The model chooses and orders the actions and explains the situation; the steps, the effect and the measure of success come from the
+        playbook, so they are always concrete and always use the system's own figures. Any gap is filled by the playbook alone."""
+        out, seen = [], set()
+        for item in obj.get("actions") or []:
+            if not isinstance(item, dict):
+                continue
+            cid = str(item.get("candidate_id", "")).strip()
+            if cid in by_id and cid not in seen and len(out) < 4:
+                pb = act_mod.playbook(by_id[cid])
+                pb["why"] = str(item.get("why") or "").strip() or pb["why"]
+                pb["now"] = str(item.get("now") or "").strip()
+                seen.add(cid)
+                out.append(pb)
+        for c in act_mod.top(cands, 8):
+            if len(out) >= min(4, len(cands)):
+                break
+            if c["id"] not in seen:
+                seen.add(c["id"])
+                out.append(act_mod.playbook(c))
+        return out[:4]
 
     def once(extra=None):
-        resp, call = run(session, "insights", system, payload, known=known, schema=INSIGHT_SCHEMA, schema_name="insights", extra=extra)
+        resp, call = run(session, "insights", system, payload, known=known, schema=schema, schema_name="insights", extra=extra)
         obj = _parse_json(resp.text)
         order = ("compare", "base", "concentration", "accounts")
         found = {}
@@ -235,15 +279,17 @@ def insights(session: Session, dataset_id: int, df: pd.DataFrame, *, year: int |
         recommendations = [str(x).strip() for x in (obj.get("recommendations") or []) if str(x).strip()][:5]
         if len(observations) < 4 or len(recommendations) < 3:
             raise AiError("bad_json", t("ai.err.bad_json"))
-        spoken = " ".join([item["text"] for item in observations] + recommendations)
-        return resp, call, observations, recommendations, verify_numbers(spoken, facts)
+        acts = build_actions(obj)
+        spoken = " ".join([item["text"] for item in observations] + recommendations
+                          + [" ".join([x["title"], x["why"], x["now"], x["expected_effect"], x["measure"], *x["steps"]]) for x in acts])
+        return resp, call, observations, recommendations, acts, verify_numbers(spoken, facts)
 
-    resp, call, observations, recommendations, v = once()
+    resp, call, observations, recommendations, acts, v = once()
     if not v["ok"]:
-        resp, call, observations, recommendations, v = once([{"role": "assistant", "content": resp.text}] + _repair_message(v["unverified"]))
+        resp, call, observations, recommendations, acts, v = once([{"role": "assistant", "content": resp.text}] + _repair_message(v["unverified"]))
     call.verified = v["ok"]
     session.commit()
-    return {"observations": observations, "recommendations": recommendations, "verification": v, **_meta(resp, call)}
+    return {"observations": observations, "recommendations": recommendations, "actions": acts, "verification": v, **_meta(resp, call)}
 
 
 def draft_brief(session: Session, dataset_id: int, df: pd.DataFrame, *, project: str, exceptional: float) -> tuple[dict, str, dict, str | None]:

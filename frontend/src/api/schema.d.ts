@@ -249,6 +249,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/class-compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Class Compare */
+        get: operations["class_compare_api_class_compare_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/overview": {
         parameters: {
             query?: never;
@@ -606,6 +623,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ai/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Conversations */
+        get: operations["conversations_api_ai_conversations_get"];
+        put?: never;
+        post?: never;
+        /** Delete All Conversations */
+        delete: operations["delete_all_conversations_api_ai_conversations_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai/conversations/{conversation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Conversation */
+        get: operations["conversation_api_ai_conversations__conversation_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Conversation */
+        delete: operations["delete_conversation_api_ai_conversations__conversation_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ai/insights": {
         parameters: {
             query?: never;
@@ -710,6 +763,39 @@ export interface components {
             /** Accepted */
             accepted: number;
         };
+        /** Action */
+        Action: {
+            /** Candidate Id */
+            candidate_id: string;
+            /** Title */
+            title: string;
+            /** Why */
+            why: string;
+            /**
+             * Now
+             * @default
+             */
+            now: string;
+            /** Steps */
+            steps: string[];
+            /** Expected Effect */
+            expected_effect: string;
+            /**
+             * Measure
+             * @default
+             */
+            measure: string;
+            /** Page */
+            page: string;
+            link: components["schemas"]["AgentLink"];
+        };
+        /** AgentLink */
+        AgentLink: {
+            /** Label */
+            label: string;
+            /** To */
+            to: string;
+        };
         /** AgentOut */
         AgentOut: {
             /** Answer */
@@ -725,6 +811,18 @@ export interface components {
             cost_usd: number;
             /** Call Ids */
             call_ids: number[];
+            /**
+             * Repairs
+             * @default 0
+             */
+            repairs: number;
+            /**
+             * Llm Calls
+             * @default 0
+             */
+            llm_calls: number;
+            /** Conversation Id */
+            conversation_id?: number | null;
         };
         /** AgentStep */
         AgentStep: {
@@ -747,6 +845,16 @@ export interface components {
             table?: components["schemas"]["AgentTable"] | null;
             /** Link */
             link?: string | null;
+            /**
+             * Links
+             * @default []
+             */
+            links: components["schemas"]["AgentLink"][];
+            /**
+             * Args Json
+             * @default {}
+             */
+            args_json: string;
             /** Ok */
             ok: boolean;
         };
@@ -899,6 +1007,8 @@ export interface components {
              * @default []
              */
             history: components["schemas"]["AiTurn"][];
+            /** Conversation Id */
+            conversation_id?: number | null;
             /** Year */
             year?: number | null;
             /** Exceptional Threshold */
@@ -940,49 +1050,6 @@ export interface components {
         Body_upload_preview_api_upload_preview_post: {
             /** File */
             file: string;
-        };
-        /** ClassCompare */
-        ClassCompare: {
-            /** Labels */
-            labels: string[];
-            /** Series */
-            series: components["schemas"]["ClassYear"][];
-        };
-        /** ClassYear */
-        ClassYear: {
-            /** Year */
-            year: number;
-            /** Amounts */
-            amounts: number[];
-        };
-        /** KpiYear */
-        KpiYear: {
-            /** Year */
-            year: number;
-            /** Total */
-            total: number;
-            /** Regular Total */
-            regular_total: number;
-            /** Exceptional Total */
-            exceptional_total: number;
-            /** N Exceptional */
-            n_exceptional: number;
-            /** Donors */
-            donors: number;
-            /** Records */
-            records: number;
-            /** In Kind Records */
-            in_kind_records: number;
-            /** Repeat */
-            repeat: number | null;
-            /** Large Gifts */
-            large_gifts: number;
-            /** Large Gifts Amount */
-            large_gifts_amount: number;
-            /** Card Gifts */
-            card_gifts: number | null;
-            /** Card Amount */
-            card_amount: number | null;
         };
         /** Breakdown */
         Breakdown: {
@@ -1101,6 +1168,42 @@ export interface components {
             requires: string[];
             /** Missing */
             missing: string[];
+        };
+        /** ChatMessage */
+        ChatMessage: {
+            /** Id */
+            id: number;
+            /** Role */
+            role: string;
+            /** Text */
+            text: string;
+            /**
+             * Steps
+             * @default []
+             */
+            steps: components["schemas"]["AgentStep"][];
+            verification?: components["schemas"]["NumberCheck"] | null;
+            /**
+             * Demo
+             * @default false
+             */
+            demo: boolean;
+            /** Created At */
+            created_at: string;
+        };
+        /** ClassCompare */
+        ClassCompare: {
+            /** Labels */
+            labels: string[];
+            /** Series */
+            series: components["schemas"]["ClassYear"][];
+        };
+        /** ClassYear */
+        ClassYear: {
+            /** Year */
+            year: number;
+            /** Amounts */
+            amounts: number[];
         };
         /** ClassifyIn */
         ClassifyIn: {
@@ -1230,6 +1333,26 @@ export interface components {
             review_items: number;
             /** Capability */
             capability: components["schemas"]["Capability"][];
+        };
+        /** ConversationOut */
+        ConversationOut: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+            /** Messages */
+            messages: components["schemas"]["ChatMessage"][];
+        };
+        /** ConversationRow */
+        ConversationRow: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+            /** Updated At */
+            updated_at: string;
+            /** N Messages */
+            n_messages: number;
         };
         /** CurvePoint */
         CurvePoint: {
@@ -1394,13 +1517,6 @@ export interface components {
             /** Large Threshold */
             large_threshold?: number | null;
         };
-        /** Observation */
-        Observation: {
-            /** Key */
-            key: string;
-            /** Text */
-            text: string;
-        };
         /** InsightsOut */
         InsightsOut: {
             /** Model */
@@ -1415,6 +1531,11 @@ export interface components {
             observations: components["schemas"]["Observation"][];
             /** Recommendations */
             recommendations: string[];
+            /**
+             * Actions
+             * @default []
+             */
+            actions: components["schemas"]["Action"][];
             verification: components["schemas"]["NumberCheck"];
             /** Sent */
             sent: string;
@@ -1444,6 +1565,35 @@ export interface components {
             reactivated: number | null;
             /** Lapsed */
             lapsed: number | null;
+        };
+        /** KpiYear */
+        KpiYear: {
+            /** Year */
+            year: number;
+            /** Total */
+            total: number;
+            /** Regular Total */
+            regular_total: number;
+            /** Exceptional Total */
+            exceptional_total: number;
+            /** N Exceptional */
+            n_exceptional: number;
+            /** Donors */
+            donors: number;
+            /** Records */
+            records: number;
+            /** In Kind Records */
+            in_kind_records: number;
+            /** Repeat */
+            repeat?: number | null;
+            /** Large Gifts */
+            large_gifts: number;
+            /** Large Gifts Amount */
+            large_gifts_amount: number;
+            /** Card Gifts */
+            card_gifts?: number | null;
+            /** Card Amount */
+            card_amount?: number | null;
         };
         /** Kpis */
         Kpis: {
@@ -1478,37 +1628,46 @@ export interface components {
             /** Repeat Selected */
             repeat_selected: number | null;
             /** Prev Total */
-            prev_total: number | null;
+            prev_total?: number | null;
             /** Prev Regular Total */
-            prev_regular_total: number | null;
+            prev_regular_total?: number | null;
             /** Prev Repeat */
-            prev_repeat: number | null;
+            prev_repeat?: number | null;
             /** Repeat Delta */
-            repeat_delta: number | null;
+            repeat_delta?: number | null;
             /** Repeat Ratio */
-            repeat_ratio: number | null;
+            repeat_ratio?: number | null;
             /** Card Gifts */
-            card_gifts: number | null;
+            card_gifts?: number | null;
             /** Prev Card Gifts */
-            prev_card_gifts: number | null;
+            prev_card_gifts?: number | null;
             /** Card Delta */
-            card_delta: number | null;
+            card_delta?: number | null;
             /** Card Yoy Pct */
-            card_yoy_pct: number | null;
+            card_yoy_pct?: number | null;
             /** Prev Large Gifts */
-            prev_large_gifts: number | null;
+            prev_large_gifts?: number | null;
             /** Large Delta */
-            large_delta: number | null;
+            large_delta?: number | null;
             /** Large Prior Avg */
-            large_prior_avg: number | null;
-            /** Million Amount */
+            large_prior_avg?: number | null;
+            /**
+             * Million Amount
+             * @default 0
+             */
             million_amount: number;
-            /** Million Projects */
+            /**
+             * Million Projects
+             * @default 0
+             */
             million_projects: number;
-            /** Million Share */
+            /**
+             * Million Share
+             * @default 0
+             */
             million_share: number;
             /** Top Project Share */
-            top_project_share: number | null;
+            top_project_share?: number | null;
         };
         /** LeakOut */
         LeakOut: {
@@ -1591,6 +1750,13 @@ export interface components {
             /** Unverified */
             unverified: string[];
         };
+        /** Observation */
+        Observation: {
+            /** Key */
+            key: string;
+            /** Text */
+            text: string;
+        };
         /** Observed */
         Observed: {
             first_time_retention: components["schemas"]["ObservedRate"];
@@ -1638,7 +1804,6 @@ export interface components {
             bands: components["schemas"]["Breakdown"][];
             /** Donor Classes */
             donor_classes: components["schemas"]["Breakdown"][];
-            /** Class Compare */
             class_compare: components["schemas"]["ClassCompare"];
             /** Methods */
             methods: components["schemas"]["Breakdown"][];
@@ -2021,11 +2186,20 @@ export interface components {
             exceptional: number;
             /** N Exceptional */
             n_exceptional: number;
-            /** Band Under */
+            /**
+             * Band Under
+             * @default 0
+             */
             band_under: number;
-            /** Band Mid */
+            /**
+             * Band Mid
+             * @default 0
+             */
             band_mid: number;
-            /** Band Over */
+            /**
+             * Band Over
+             * @default 0
+             */
             band_over: number;
             /** Donors */
             donors: number;
@@ -2482,6 +2656,8 @@ export interface operations {
             query?: {
                 dataset_id?: number | null;
                 exceptional_threshold?: number | null;
+                band_low?: number | null;
+                band_high?: number | null;
             };
             header?: never;
             path?: never;
@@ -2509,11 +2685,47 @@ export interface operations {
             };
         };
     };
+    class_compare_api_class_compare_get: {
+        parameters: {
+            query?: {
+                dataset_id?: number | null;
+                scope?: string;
+                exceptional_threshold?: number | null;
+                amount_min?: number | null;
+                amount_max?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassCompare"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     overview_api_overview_get: {
         parameters: {
             query?: {
                 dataset_id?: number | null;
                 year?: number | null;
+                compare_year?: number | null;
                 scope?: string;
                 exceptional_threshold?: number | null;
                 large_threshold?: number | null;
@@ -2614,6 +2826,7 @@ export interface operations {
             query?: {
                 dataset_id?: number | null;
                 year?: number | null;
+                compare_year?: number | null;
                 exceptional_threshold?: number | null;
             };
             header?: never;
@@ -2713,6 +2926,7 @@ export interface operations {
             query?: {
                 dataset_id?: number | null;
                 year?: number | null;
+                compare_year?: number | null;
                 exceptional_threshold?: number | null;
             };
             header?: never;
@@ -3159,6 +3373,119 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    conversations_api_ai_conversations_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationRow"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_all_conversations_api_ai_conversations_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    conversation_api_ai_conversations__conversation_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_conversation_api_ai_conversations__conversation_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

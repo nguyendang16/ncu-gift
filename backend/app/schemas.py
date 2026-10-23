@@ -666,6 +666,11 @@ class AgentTable(BaseModel):
     rows: list[list[str | int | float]]
 
 
+class AgentLink(BaseModel):
+    label: str
+    to: str
+
+
 class AgentStep(BaseModel):
     n: int
     tool: str
@@ -674,6 +679,7 @@ class AgentStep(BaseModel):
     summary: str = ""
     table: AgentTable | None = None
     link: str | None = None
+    links: list[AgentLink] = []
     args_json: str = "{}"
     ok: bool
 
@@ -688,12 +694,14 @@ class AgentOut(BaseModel):
     call_ids: list[int]
     repairs: int = 0
     llm_calls: int = 0
+    conversation_id: int | None = None
 
 
 class AskIn(BaseModel):
     dataset_id: int | None = None
     question: str
     history: list[AiTurn] = []
+    conversation_id: int | None = None
     year: int | None = None
     exceptional_threshold: float | None = None
     large_threshold: float | None = None
@@ -724,11 +732,47 @@ class Observation(BaseModel):
     text: str
 
 
+class Action(BaseModel):
+    candidate_id: str
+    title: str
+    why: str
+    now: str = ""
+    steps: list[str]
+    expected_effect: str
+    measure: str = ""
+    page: str
+    link: AgentLink
+
+
 class InsightsOut(AiMeta):
     observations: list[Observation]
     recommendations: list[str]
+    actions: list[Action] = []
     verification: NumberCheck
     sent: str
+
+
+class ChatMessage(BaseModel):
+    id: int
+    role: str
+    text: str
+    steps: list[AgentStep] = []
+    verification: NumberCheck | None = None
+    demo: bool = False
+    created_at: str
+
+
+class ConversationRow(BaseModel):
+    id: int
+    title: str
+    updated_at: str
+    n_messages: int
+
+
+class ConversationOut(BaseModel):
+    id: int
+    title: str
+    messages: list[ChatMessage]
 
 
 class MapIn(BaseModel):

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useCreateBrief, useTargets, useVerifyBrief } from "../api/hooks";
 import type { Brief } from "../api/types";
 import { AiOffHint, DemoNotice, useAiReady } from "../components/AiParts";
@@ -19,7 +20,8 @@ export default function Briefs() {
   const { t, tx, fmt } = useI18n();
   const targets = useTargets(datasetId);
   const projects = (targets.data ?? []).filter((x) => x.kind === "project");
-  const [projectId, setProjectId] = useState<string>("");
+  const [qs] = useSearchParams();
+  const [projectId, setProjectId] = useState<string>(qs.get("project") ?? "");
   const create = useCreateBrief();
   const { ready } = useAiReady();
   const make = (use_ai: boolean) => create.mutate({ dataset_id: datasetId, project: projectName, exceptional_threshold: settings.exceptional, use_ai });
@@ -27,7 +29,7 @@ export default function Briefs() {
   const [text, setText] = useState("");
   const brief: Brief | undefined = verify.data ?? create.data;
   useEffect(() => { if (create.data) setText(create.data.draft_text); }, [create.data]);
-  useEffect(() => { if (!projectId && projects.length) setProjectId(projects[0].id); }, [projects, projectId]);
+  useEffect(() => { if (projects.length && !projects.some((p) => p.id === projectId)) setProjectId(projects[0].id); }, [projects, projectId]);
   const f = brief?.facts as Facts | undefined;
   const v = brief?.verification;
   // target ids look like "project:<canonical name>"; the API takes the canonical name

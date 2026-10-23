@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .. import config, schemas
-from ..ai import features
+from ..ai import chats, features
 from ..ai.agent import run_agent
 from ..ai.config import get_config
 from ..db import get_session
@@ -57,8 +57,34 @@ def agent(body: schemas.AskIn, session: Session = Depends(get_session)):
     if not body.question.strip():
         raise HTTPException(400, t("ai.err.empty"))
     ds, df = frame_for(session, body.dataset_id)
-    return run_agent(session, ds.id, df, question=body.question, history=[h.model_dump() for h in body.history],
-                     exceptional=exc_threshold(body.exceptional_threshold), large=_large(body.large_threshold))
+    history = chats.history_for_model(session, body.conversation_id) if body.conversation_id else [h.model_dump() for h in body.history]
+    result = run_agent(session, ds.id, df, question=body.question, history=history,
+                       exceptional=exc_threshold(body.exceptional_threshold), large=_large(body.large_threshold))
+    result["conversation_id"] = chats.save_turn(session, body.conversation_id, ds.id, body.question, result)
+    return result
+
+
+@router.get("/conversations", response_model=list[schemas.ConversationRow])
+def conversations(limit: int = 50, session: Session = Depends(get_session)):
+    return chats.list_conversations(session, min(max(limit, 1), 200))
+
+
+@router.get("/conversations/{conversation_id}", response_model=schemas.ConversationOut)
+def conversation(conversation_id: int, session: Session = Depends(get_session)):
+    c = chats.get_conversation(session, conversation_id)
+    if c is None:
+        raise HTTPException(404, "Not found")
+    return c
+
+
+@router.delete("/conversations/{conversation_id}")
+def delete_conversation(conversation_id: int, session: Session = Depends(get_session)):
+    return {"deleted": chats.delete_conversation(session, conversation_id)}
+
+
+@router.delete("/conversations")
+def delete_all_conversations(session: Session = Depends(get_session)):
+    return {"deleted": chats.delete_conversation(session, None)}
 
 
 @router.post("/insights", response_model=schemas.InsightsOut)

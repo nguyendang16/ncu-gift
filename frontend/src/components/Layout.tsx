@@ -3,6 +3,7 @@ import { useAiStatus } from "../api/hooks";
 import { useApp } from "../context/AppContext";
 import { LANGS, useI18n } from "../i18n";
 import type { Key } from "../i18n/en";
+import { AssistantDock } from "./AssistantDock";
 import { Icon, type IconName } from "./ui";
 
 const NAV: { group: Key; items: { to: string; label: Key; icon: IconName; ai?: boolean }[] }[] = [
@@ -89,6 +90,7 @@ export default function Layout() {
           <LangSwitch />
         </header>
         <main className="content"><Outlet /></main>
+        <AssistantDock />
       </div>
     </div>
   );

@@ -554,6 +554,38 @@
               ],
               "title": "Exceptional Threshold"
             }
+          },
+          {
+            "name": "band_low",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Band Low"
+            }
+          },
+          {
+            "name": "band_high",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Band High"
+            }
           }
         ],
         "responses": {
@@ -567,6 +599,110 @@
                     "$ref": "#/components/schemas/TrendRow"
                   },
                   "title": "Response Trend Api Trend Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/class-compare": {
+      "get": {
+        "summary": "Class Compare",
+        "operationId": "class_compare_api_class_compare_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all",
+              "title": "Scope"
+            }
+          },
+          {
+            "name": "exceptional_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exceptional Threshold"
+            }
+          },
+          {
+            "name": "amount_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Amount Min"
+            }
+          },
+          {
+            "name": "amount_max",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Amount Max"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassCompare"
                 }
               }
             }
@@ -619,6 +755,22 @@
                 }
               ],
               "title": "Year"
+            }
+          },
+          {
+            "name": "compare_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Compare Year"
             }
           },
           {
@@ -860,6 +1012,22 @@
             }
           },
           {
+            "name": "compare_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Compare Year"
+            }
+          },
+          {
             "name": "exceptional_threshold",
             "in": "query",
             "required": false,
@@ -1089,6 +1257,22 @@
                 }
               ],
               "title": "Year"
+            }
+          },
+          {
+            "name": "compare_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Compare Year"
             }
           },
           {
@@ -1746,6 +1930,138 @@
         }
       }
     },
+    "/api/ai/conversations": {
+      "get": {
+        "summary": "Conversations",
+        "operationId": "conversations_api_ai_conversations_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConversationRow"
+                  },
+                  "title": "Response Conversations Api Ai Conversations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete All Conversations",
+        "operationId": "delete_all_conversations_api_ai_conversations_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/conversations/{conversation_id}": {
+      "get": {
+        "summary": "Conversation",
+        "operationId": "conversation_api_ai_conversations__conversation_id__get",
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Conversation",
+        "operationId": "delete_conversation_api_ai_conversations__conversation_id__delete",
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/ai/insights": {
       "post": {
         "summary": "Insights",
@@ -1981,6 +2297,79 @@
         ],
         "title": "AcceptOut"
       },
+      "Action": {
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "title": "Candidate Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "why": {
+            "type": "string",
+            "title": "Why"
+          },
+          "now": {
+            "type": "string",
+            "title": "Now",
+            "default": ""
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "expected_effect": {
+            "type": "string",
+            "title": "Expected Effect"
+          },
+          "measure": {
+            "type": "string",
+            "title": "Measure",
+            "default": ""
+          },
+          "page": {
+            "type": "string",
+            "title": "Page"
+          },
+          "link": {
+            "$ref": "#/components/schemas/AgentLink"
+          }
+        },
+        "type": "object",
+        "required": [
+          "candidate_id",
+          "title",
+          "why",
+          "steps",
+          "expected_effect",
+          "page",
+          "link"
+        ],
+        "title": "Action"
+      },
+      "AgentLink": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "to": {
+            "type": "string",
+            "title": "To"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "to"
+        ],
+        "title": "AgentLink"
+      },
       "AgentOut": {
         "properties": {
           "answer": {
@@ -2015,6 +2404,27 @@
             },
             "type": "array",
             "title": "Call Ids"
+          },
+          "repairs": {
+            "type": "integer",
+            "title": "Repairs",
+            "default": 0
+          },
+          "llm_calls": {
+            "type": "integer",
+            "title": "Llm Calls",
+            "default": 0
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
           }
         },
         "type": "object",
@@ -2073,6 +2483,19 @@
               }
             ],
             "title": "Link"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/AgentLink"
+            },
+            "type": "array",
+            "title": "Links",
+            "default": []
+          },
+          "args_json": {
+            "type": "string",
+            "title": "Args Json",
+            "default": "{}"
           },
           "ok": {
             "type": "boolean",
@@ -2520,6 +2943,17 @@
             "type": "array",
             "title": "History",
             "default": []
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
           },
           "year": {
             "anyOf": [
@@ -2997,6 +3431,102 @@
         ],
         "title": "Capability"
       },
+      "ChatMessage": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/AgentStep"
+            },
+            "type": "array",
+            "title": "Steps",
+            "default": []
+          },
+          "verification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NumberCheck"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "demo": {
+            "type": "boolean",
+            "title": "Demo",
+            "default": false
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "role",
+          "text",
+          "created_at"
+        ],
+        "title": "ChatMessage"
+      },
+      "ClassCompare": {
+        "properties": {
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Labels"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/ClassYear"
+            },
+            "type": "array",
+            "title": "Series"
+          }
+        },
+        "type": "object",
+        "required": [
+          "labels",
+          "series"
+        ],
+        "title": "ClassCompare"
+      },
+      "ClassYear": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "amounts": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Amounts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "year",
+          "amounts"
+        ],
+        "title": "ClassYear"
+      },
       "ClassifyIn": {
         "properties": {
           "dataset_id": {
@@ -3370,6 +3900,60 @@
           "capability"
         ],
         "title": "ConfirmOut"
+      },
+      "ConversationOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            },
+            "type": "array",
+            "title": "Messages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "messages"
+        ],
+        "title": "ConversationOut"
+      },
+      "ConversationRow": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "n_messages": {
+            "type": "integer",
+            "title": "N Messages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "updated_at",
+          "n_messages"
+        ],
+        "title": "ConversationRow"
       },
       "CurvePoint": {
         "properties": {
@@ -3860,16 +4444,27 @@
             "type": "integer",
             "title": "Call Id"
           },
-          "headline": {
-            "type": "string",
-            "title": "Headline"
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/Observation"
+            },
+            "type": "array",
+            "title": "Observations"
           },
-          "points": {
+          "recommendations": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Points"
+            "title": "Recommendations"
+          },
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/Action"
+            },
+            "type": "array",
+            "title": "Actions",
+            "default": []
           },
           "verification": {
             "$ref": "#/components/schemas/NumberCheck"
@@ -3885,8 +4480,8 @@
           "demo",
           "cost_usd",
           "call_id",
-          "headline",
-          "points",
+          "observations",
+          "recommendations",
           "verification",
           "sent"
         ],
@@ -3995,6 +4590,97 @@
         ],
         "title": "JourneyYear"
       },
+      "KpiYear": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "total": {
+            "type": "number",
+            "title": "Total"
+          },
+          "regular_total": {
+            "type": "number",
+            "title": "Regular Total"
+          },
+          "exceptional_total": {
+            "type": "number",
+            "title": "Exceptional Total"
+          },
+          "n_exceptional": {
+            "type": "integer",
+            "title": "N Exceptional"
+          },
+          "donors": {
+            "type": "integer",
+            "title": "Donors"
+          },
+          "records": {
+            "type": "integer",
+            "title": "Records"
+          },
+          "in_kind_records": {
+            "type": "integer",
+            "title": "In Kind Records"
+          },
+          "repeat": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repeat"
+          },
+          "large_gifts": {
+            "type": "integer",
+            "title": "Large Gifts"
+          },
+          "large_gifts_amount": {
+            "type": "number",
+            "title": "Large Gifts Amount"
+          },
+          "card_gifts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Card Gifts"
+          },
+          "card_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Card Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "year",
+          "total",
+          "regular_total",
+          "exceptional_total",
+          "n_exceptional",
+          "donors",
+          "records",
+          "in_kind_records",
+          "large_gifts",
+          "large_gifts_amount"
+        ],
+        "title": "KpiYear"
+      },
       "Kpis": {
         "properties": {
           "total": {
@@ -4091,6 +4777,164 @@
               }
             ],
             "title": "Repeat Selected"
+          },
+          "prev_total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Total"
+          },
+          "prev_regular_total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Regular Total"
+          },
+          "prev_repeat": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Repeat"
+          },
+          "repeat_delta": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repeat Delta"
+          },
+          "repeat_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repeat Ratio"
+          },
+          "card_gifts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Card Gifts"
+          },
+          "prev_card_gifts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Card Gifts"
+          },
+          "card_delta": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Card Delta"
+          },
+          "card_yoy_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Card Yoy Pct"
+          },
+          "prev_large_gifts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Large Gifts"
+          },
+          "large_delta": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Large Delta"
+          },
+          "large_prior_avg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Large Prior Avg"
+          },
+          "million_amount": {
+            "type": "number",
+            "title": "Million Amount",
+            "default": 0
+          },
+          "million_projects": {
+            "type": "integer",
+            "title": "Million Projects",
+            "default": 0
+          },
+          "million_share": {
+            "type": "number",
+            "title": "Million Share",
+            "default": 0
+          },
+          "top_project_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top Project Share"
           }
         },
         "type": "object",
@@ -4337,6 +5181,24 @@
         ],
         "title": "NumberCheck"
       },
+      "Observation": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "text"
+        ],
+        "title": "Observation"
+      },
       "Observed": {
         "properties": {
           "first_time_retention": {
@@ -4443,6 +5305,13 @@
           "kpis": {
             "$ref": "#/components/schemas/Kpis"
           },
+          "kpi_compare": {
+            "items": {
+              "$ref": "#/components/schemas/KpiYear"
+            },
+            "type": "array",
+            "title": "Kpi Compare"
+          },
           "monthly": {
             "items": {
               "$ref": "#/components/schemas/MonthRow"
@@ -4463,6 +5332,9 @@
             },
             "type": "array",
             "title": "Donor Classes"
+          },
+          "class_compare": {
+            "$ref": "#/components/schemas/ClassCompare"
           },
           "methods": {
             "items": {
@@ -4515,9 +5387,11 @@
           "scope",
           "scope_label",
           "kpis",
+          "kpi_compare",
           "monthly",
           "bands",
           "donor_classes",
+          "class_compare",
           "methods",
           "purpose_groups",
           "purpose_subs",
@@ -5556,6 +6430,21 @@
           "n_exceptional": {
             "type": "integer",
             "title": "N Exceptional"
+          },
+          "band_under": {
+            "type": "number",
+            "title": "Band Under",
+            "default": 0
+          },
+          "band_mid": {
+            "type": "number",
+            "title": "Band Mid",
+            "default": 0
+          },
+          "band_over": {
+            "type": "number",
+            "title": "Band Over",
+            "default": 0
           },
           "donors": {
             "type": "integer",
