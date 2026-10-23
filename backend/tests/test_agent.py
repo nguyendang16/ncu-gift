@@ -259,3 +259,19 @@ def test_without_a_usable_reply_the_actions_still_come_from_the_playbook_in_both
         r = client.post("/api/ai/insights", json={"dataset_id": mock_id, "exceptional_threshold": 10_000_000}, headers={"Accept-Language": lang}).json()
         assert len(r["actions"]) >= 3 and all(marker in a["measure"] and len(a["steps"]) == 3 for a in r["actions"])
         assert r["verification"]["ok"] is True
+
+
+def test_an_answer_saved_before_open_buttons_existed_reopens_with_an_empty_button_list(client):
+    import json as _json
+    from app.db import SessionLocal
+    from app.models import AiConversation, AiMessage
+    with SessionLocal() as s:
+        c = AiConversation(title="old")
+        s.add(c); s.flush()
+        old_step = {"n": 1, "tool": "giving_overview", "title": "Giving overview", "args_text": "", "summary": "x", "table": None, "link": None, "ok": True}
+        s.add(AiMessage(conversation_id=c.id, role="user", text="q"))
+        s.add(AiMessage(conversation_id=c.id, role="assistant", text="a", payload_json=_json.dumps({"steps": [old_step], "verification": None, "demo": False})))
+        s.commit(); cid = c.id
+    got = client.get(f"/api/ai/conversations/{cid}").json()
+    assert got["messages"][1]["steps"][0]["links"] == []
+    client.delete(f"/api/ai/conversations/{cid}")

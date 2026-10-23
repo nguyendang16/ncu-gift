@@ -26,6 +26,7 @@ function plain(text: string, scope: string): ReactNode {
 }
 
 function StepCard({ s, scope, onNavigate }: { s: AgentStep; scope: string; onNavigate?: () => void }) {
+  const links = s.links ?? [];          // older saved answers and older servers have no links
   return (
     <div className={`step ${s.ok ? "" : "bad"}`} id={`src-${scope}-${s.n}`}>
       <div className="step-h"><span className="cite static">{s.n}</span><b>{s.title}</b>{s.args_text && <span className="muted small"> · {s.args_text}</span>}</div>
@@ -36,9 +37,9 @@ function StepCard({ s, scope, onNavigate }: { s: AgentStep; scope: string; onNav
           <tbody>{s.table.rows.map((r, i) => <tr key={i}>{r.map((v, j) => <td key={j} className={j === 0 ? "mono" : ""}>{String(v)}</td>)}</tr>)}</tbody>
         </table></div>
       )}
-      {s.links.length > 0 && (
+      {links.length > 0 && (
         <div className="step-links">
-          {s.links.map((l) => <Link key={l.to} className="btn" to={l.to} onClick={onNavigate}>{l.label} →</Link>)}
+          {links.map((l) => <Link key={l.to} className="btn" to={l.to} onClick={onNavigate}>{l.label} →</Link>)}
         </div>
       )}
     </div>
@@ -50,7 +51,7 @@ const turnsOf = (c: ConversationOut): Turn[] => {
   let q = "";
   for (const m of c.messages) {
     if (m.role === "user") q = m.text;
-    else out.push({ q, answer: m.text, steps: m.steps, verification: m.verification, demo: m.demo });
+    else out.push({ q, answer: m.text, steps: m.steps ?? [], verification: m.verification, demo: m.demo });
   }
   return out;
 };
@@ -109,7 +110,7 @@ export function AgentChat({ initialId, onNavigate, compact }: { initialId?: numb
     ask.mutate({ dataset_id: datasetId, question: q, conversation_id: convId, history, exceptional_threshold: settings.exceptional, large_threshold: settings.large }, {
       onSuccess: (a) => {
         setConvId(a.conversation_id ?? convId);
-        setTurns((p) => [...p, { q, answer: a.answer, steps: a.steps, verification: a.verification, demo: a.demo }]);
+        setTurns((p) => [...p, { q, answer: a.answer, steps: a.steps ?? [], verification: a.verification, demo: a.demo }]);
         setText("");
       },
     });

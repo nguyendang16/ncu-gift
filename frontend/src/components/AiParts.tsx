@@ -74,9 +74,9 @@ export function AiSummary({ year }: { year?: number }) {
           </section>
           <section className="brief-col" style={{ marginTop: 16 }}>
             <h3>{t("ai.actions_title")}</h3>
-            {r.actions.length > 0 ? (
+            {(r.actions ?? []).length > 0 ? (
               <div className="act-grid">
-                {r.actions.map((a, i) => (
+                {(r.actions ?? []).map((a, i) => (
                   <article className="act" key={a.candidate_id}>
                     <header><span className="act-n">{i + 1}</span><h4>{a.title}</h4></header>
                     <p>{a.why}</p>

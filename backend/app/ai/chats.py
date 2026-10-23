@@ -58,6 +58,8 @@ def get_conversation(session: Session, conversation_id: int) -> dict | None:
     msgs = []
     for m in session.query(AiMessage).filter(AiMessage.conversation_id == conv.id).order_by(AiMessage.id):
         p = json.loads(m.payload_json or "{}")
+        for s in p.get("steps", []):
+            s.setdefault("links", [])
         msgs.append({"id": m.id, "role": m.role, "text": m.text, "steps": p.get("steps", []), "verification": p.get("verification"),
                      "demo": bool(p.get("demo")), "created_at": m.created_at.isoformat()})
     return {"id": conv.id, "title": conv.title, "messages": msgs}
