@@ -1,7 +1,7 @@
 import { useJourney } from "../api/hooks";
 import type { Journey } from "../api/types";
 import { Chart } from "../components/Chart";
-import { Card, Notice, PageHeader, Q } from "../components/ui";
+import { How, Card, Notice, PageHeader, Q } from "../components/ui";
 import { useApp } from "../context/AppContext";
 import { useI18n, type Fmt } from "../i18n";
 import type { Key } from "../i18n/en";
@@ -54,7 +54,7 @@ export default function JourneyPage() {
         <>
           <Card icon="route" title={t("sankey.title")} sub={t("sankey.sub")} help="tip.sankey">
             <Chart option={sankeyOption(j, t)} label={t("sankey.aria")} height={340} />
-            <div className="how">{t("how.sankey")}</div>
+            <How>{t("how.sankey")}</How>
           </Card>
           <div className="grid g-main">
             <Card icon="trend" title={t("journey.flow_title")} sub={t("journey.flow_sub")}>

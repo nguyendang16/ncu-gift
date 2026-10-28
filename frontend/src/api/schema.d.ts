@@ -538,6 +538,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ai/version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Version
+         * @description What this running server can do. The interface checks it and says so when the server was started before an update.
+         */
+        get: operations["version_api_ai_version_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ai/status": {
         parameters: {
             query?: never;
@@ -617,6 +637,63 @@ export interface paths {
         put?: never;
         /** Agent */
         post: operations["agent_api_ai_agent_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai/agent/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Agent Stream
+         * @description Same as /agent, but sent as it happens (one JSON object per line): thinking, step (each finished analysis), answer or error.
+         */
+        post: operations["agent_stream_api_ai_agent_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai/messages/{message_id}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Feedback
+         * @description A person's rating of an answer: 1 useful, -1 not useful, 0 to take it back. The evidence for 'did this help staff?'.
+         */
+        post: operations["feedback_api_ai_messages__message_id__feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai/feedback-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Feedback Summary */
+        get: operations["feedback_summary_api_ai_feedback_summary_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -823,6 +900,8 @@ export interface components {
             llm_calls: number;
             /** Conversation Id */
             conversation_id?: number | null;
+            /** Message Id */
+            message_id?: number | null;
         };
         /** AgentStep */
         AgentStep: {
@@ -850,6 +929,10 @@ export interface components {
              * @default []
              */
             links: components["schemas"]["AgentLink"][];
+            /** Visual */
+            visual?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Args Json
              * @default {}
@@ -1188,6 +1271,11 @@ export interface components {
              * @default false
              */
             demo: boolean;
+            /**
+             * Feedback
+             * @default 0
+             */
+            feedback: number;
             /** Created At */
             created_at: string;
         };
@@ -1449,6 +1537,20 @@ export interface components {
             total_if_gift_arrives: number;
             /** Note */
             note: string;
+        };
+        /** FeedbackIn */
+        FeedbackIn: {
+            /** Value */
+            value: number;
+        };
+        /** FeedbackSummary */
+        FeedbackSummary: {
+            /** Useful */
+            useful: number;
+            /** Not Useful */
+            not_useful: number;
+            /** Unrated */
+            unrated: number;
         };
         /** FieldInfo */
         FieldInfo: {
@@ -3247,6 +3349,26 @@ export interface operations {
             };
         };
     };
+    version_api_ai_version_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     status_api_ai_status_get: {
         parameters: {
             query?: never;
@@ -3382,6 +3504,94 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    agent_stream_api_ai_agent_stream_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AskIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    feedback_api_ai_messages__message_id__feedback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                message_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    feedback_summary_api_ai_feedback_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackSummary"];
                 };
             };
         };

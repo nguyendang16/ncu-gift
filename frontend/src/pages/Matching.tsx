@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMatchEval, useRank, useTargets } from "../api/hooks";
-import { Card, Notice, PageHeader, Q } from "../components/ui";
+import { How, Card, Notice, PageHeader, Q } from "../components/ui";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n";
 import type { Key } from "../i18n/en";
@@ -61,7 +61,7 @@ export default function Matching() {
                   <b>{t("match.signals")}:</b>
                   {Object.keys(r.weights).map((k, si) => <span key={k}><i style={{ display: "inline-block", width: 10, height: 10, borderRadius: 3, background: PALETTE[si % PALETTE.length], marginRight: 5 }} />{t(`signal.${k}` as Key)} {r.weights[k]}</span>)}
                 </div>
-                <div className="how">{t("how.match")}</div>
+                <How>{t("how.match")}</How>
               </>
             )}</Q>
           </Card>

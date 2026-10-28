@@ -12,8 +12,8 @@ Dataset id 1; 52 questions in English and 繁體中文. Expected figures were re
 | Stays within what the data supports | 5 of 5 (100%) |
 | First draft contained a figure the tools never produced, then repaired | 0 of 52 |
 | Final answers still containing an unverified figure | 0 of 52 |
-| Median / slowest answer | 4.3 s / 9.4 s |
-| Cost for the whole run | US$0.005 (about US$0.0001 per question) |
+| Median / slowest answer | 2.7 s / 7.1 s |
+| Cost for the whole run | US$0.009 (about US$0.0002 per question) |
 
 ## Every question
 

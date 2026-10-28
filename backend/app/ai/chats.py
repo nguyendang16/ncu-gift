@@ -29,7 +29,8 @@ def history_for_model(session: Session, conversation_id: int, turns: int = 3) ->
     return out[-turns:]
 
 
-def save_turn(session: Session, conversation_id: int | None, dataset_id: int | None, question: str, result: dict) -> int:
+def save_turn(session: Session, conversation_id: int | None, dataset_id: int | None, question: str, result: dict) -> tuple[int, int]:
+    """-> (conversation id, id of the saved answer)."""
     conv = session.get(AiConversation, conversation_id) if conversation_id else None
     if conv is None:
         conv = AiConversation(title=_title(question), dataset_id=dataset_id)
@@ -38,11 +39,11 @@ def save_turn(session: Session, conversation_id: int | None, dataset_id: int | N
     now = datetime.utcnow()
     session.add(AiMessage(conversation_id=conv.id, role="user", text=question.strip(), created_at=now))
     payload = {"steps": result.get("steps", []), "verification": result.get("verification"), "demo": bool(result.get("demo"))}
-    session.add(AiMessage(conversation_id=conv.id, role="assistant", text=result["answer"], payload_json=json.dumps(payload, ensure_ascii=False, default=str),
-                          created_at=now))
+    reply = AiMessage(conversation_id=conv.id, role="assistant", text=result["answer"], payload_json=json.dumps(payload, ensure_ascii=False, default=str), created_at=now)
+    session.add(reply)
     conv.updated_at = now
     session.commit()
-    return conv.id
+    return conv.id, reply.id
 
 
 def list_conversations(session: Session, limit: int = 50) -> list[dict]:
@@ -61,7 +62,7 @@ def get_conversation(session: Session, conversation_id: int) -> dict | None:
         for s in p.get("steps", []):
             s.setdefault("links", [])
         msgs.append({"id": m.id, "role": m.role, "text": m.text, "steps": p.get("steps", []), "verification": p.get("verification"),
-                     "demo": bool(p.get("demo")), "created_at": m.created_at.isoformat()})
+                     "demo": bool(p.get("demo")), "feedback": m.feedback or 0, "created_at": m.created_at.isoformat()})
     return {"id": conv.id, "title": conv.title, "messages": msgs}
 
 

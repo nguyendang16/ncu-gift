@@ -1780,6 +1780,23 @@
         }
       }
     },
+    "/api/ai/version": {
+      "get": {
+        "summary": "Version",
+        "description": "What this running server can do. The interface checks it and says so when the server was started before an update.",
+        "operationId": "version_api_ai_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/ai/status": {
       "get": {
         "summary": "Status",
@@ -1923,6 +1940,109 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/agent/stream": {
+      "post": {
+        "summary": "Agent Stream",
+        "description": "Same as /agent, but sent as it happens (one JSON object per line): thinking, step (each finished analysis), answer or error.",
+        "operationId": "agent_stream_api_ai_agent_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/messages/{message_id}/feedback": {
+      "post": {
+        "summary": "Feedback",
+        "description": "A person's rating of an answer: 1 useful, -1 not useful, 0 to take it back. The evidence for 'did this help staff?'.",
+        "operationId": "feedback_api_ai_messages__message_id__feedback_post",
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Message Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/feedback-summary": {
+      "get": {
+        "summary": "Feedback Summary",
+        "operationId": "feedback_summary_api_ai_feedback_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackSummary"
                 }
               }
             }
@@ -2425,6 +2545,17 @@
               }
             ],
             "title": "Conversation Id"
+          },
+          "message_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Id"
           }
         },
         "type": "object",
@@ -2491,6 +2622,18 @@
             "type": "array",
             "title": "Links",
             "default": []
+          },
+          "visual": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visual"
           },
           "args_json": {
             "type": "string",
@@ -3468,6 +3611,11 @@
             "title": "Demo",
             "default": false
           },
+          "feedback": {
+            "type": "integer",
+            "title": "Feedback",
+            "default": 0
+          },
           "created_at": {
             "type": "string",
             "title": "Created At"
@@ -4229,6 +4377,42 @@
           "note"
         ],
         "title": "ExceptionalLine"
+      },
+      "FeedbackIn": {
+        "properties": {
+          "value": {
+            "type": "integer",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "title": "FeedbackIn"
+      },
+      "FeedbackSummary": {
+        "properties": {
+          "useful": {
+            "type": "integer",
+            "title": "Useful"
+          },
+          "not_useful": {
+            "type": "integer",
+            "title": "Not Useful"
+          },
+          "unrated": {
+            "type": "integer",
+            "title": "Unrated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "useful",
+          "not_useful",
+          "unrated"
+        ],
+        "title": "FeedbackSummary"
       },
       "FieldInfo": {
         "properties": {

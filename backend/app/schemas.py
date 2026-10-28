@@ -680,6 +680,7 @@ class AgentStep(BaseModel):
     table: AgentTable | None = None
     link: str | None = None
     links: list[AgentLink] = []
+    visual: dict | None = None
     args_json: str = "{}"
     ok: bool
 
@@ -695,6 +696,7 @@ class AgentOut(BaseModel):
     repairs: int = 0
     llm_calls: int = 0
     conversation_id: int | None = None
+    message_id: int | None = None
 
 
 class AskIn(BaseModel):
@@ -759,7 +761,18 @@ class ChatMessage(BaseModel):
     steps: list[AgentStep] = []
     verification: NumberCheck | None = None
     demo: bool = False
+    feedback: int = 0
     created_at: str
+
+
+class FeedbackIn(BaseModel):
+    value: int
+
+
+class FeedbackSummary(BaseModel):
+    useful: int
+    not_useful: int
+    unrated: int
 
 
 class ConversationRow(BaseModel):

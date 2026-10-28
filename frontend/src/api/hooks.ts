@@ -132,7 +132,7 @@ export function useAiStatus() {
   const lang = useLang();
   return useQuery({ queryKey: ["ai-status", lang], queryFn: () => api<AiStatus>("/api/ai/status"), staleTime: 5_000 });
 }
-const NEEDED = ["agent_links", "conversations", "plan_to_raise", "find_feature", "insight_actions"];
+const NEEDED = ["agent_links", "conversations", "plan_to_raise", "find_feature", "insight_actions", "agent_stream", "feedback", "visuals"];
 /** True when the running API is older than this page (it was started before an update and never restarted). */
 export function useServerIsStale() {
   const q = useQuery({ queryKey: ["ai-version"], retry: false, staleTime: 60_000, queryFn: () => api<{ features: string[] }>("/api/ai/version") });

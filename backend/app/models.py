@@ -180,4 +180,5 @@ class AiMessage(Base):
     role: Mapped[str] = mapped_column(String(12))                       # user | assistant
     text: Mapped[str] = mapped_column(Text)
     payload_json: Mapped[str] = mapped_column(Text, default="{}")      # assistant: steps, verification, demo
+    feedback: Mapped[int] = mapped_column(Integer, default=0)           # staff rating of an answer: 1 useful, -1 not useful, 0 none
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

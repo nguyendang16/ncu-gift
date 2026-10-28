@@ -1,19 +1,23 @@
-import { NavLink, Outlet } from "react-router-dom";
-import { useAiStatus, useServerIsStale } from "../api/hooks";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useServerIsStale } from "../api/hooks";
 import { useApp } from "../context/AppContext";
 import { LANGS, useI18n } from "../i18n";
 import type { Key } from "../i18n/en";
-import { AssistantDock } from "./AssistantDock";
+import { AiDock } from "./ai/Dock";
+import { AiDockProvider, useAiDock } from "./ai/dockContext";
 import { Icon, type IconName } from "./ui";
 
-const NAV: { group: Key; items: { to: string; label: Key; icon: IconName; ai?: boolean }[] }[] = [
-  { group: "nav.group.understand", items: [{ to: "/", label: "nav.overview", icon: "overview" }, { to: "/journey", label: "nav.journey", icon: "journey" }] },
-  { group: "nav.group.ai", items: [{ to: "/ai", label: "nav.ai", icon: "ai", ai: true }] },
-  { group: "nav.group.act", items: [
-    { to: "/risk", label: "nav.risk", icon: "risk" }, { to: "/matching", label: "nav.matching", icon: "match" },
-    { to: "/briefs", label: "nav.briefs", icon: "brief" }, { to: "/strategy", label: "nav.strategy", icon: "strategy" } ] },
-  { group: "nav.group.output", items: [{ to: "/roll", label: "nav.roll", icon: "roll" }] },
-  { group: "nav.group.data", items: [{ to: "/data", label: "nav.data", icon: "data" }] },
+/** Five places, not nine pages: related pages become tabs inside their place. Routes are unchanged, so every link keeps working. */
+type Tab = { to: string; label: Key };
+const PLACES: { id: string; to: string; label: Key; icon: IconName; paths: string[]; tabs?: Tab[] }[] = [
+  { id: "overview", to: "/", label: "nav.overview", icon: "overview", paths: ["/"] },
+  { id: "donors", to: "/risk", label: "nav.donors", icon: "people", paths: ["/risk", "/matching", "/journey"],
+    tabs: [{ to: "/risk", label: "sub.risk" }, { to: "/matching", label: "sub.matching" }, { to: "/journey", label: "sub.journey" }] },
+  { id: "plan", to: "/strategy", label: "nav.plan", icon: "strategy", paths: ["/strategy", "/briefs"],
+    tabs: [{ to: "/strategy", label: "sub.strategy" }, { to: "/briefs", label: "sub.briefs" }] },
+  { id: "roll", to: "/roll", label: "nav.roll", icon: "roll", paths: ["/roll"] },
+  { id: "data", to: "/data", label: "nav.data", icon: "data", paths: ["/data"] },
 ];
 
 const EXC = [1e6, 5e6, 1e7, 5e7, 1e8];
@@ -32,36 +36,23 @@ export function LangSwitch() {
   );
 }
 
-export default function Layout() {
-  const { datasets, dataset, setDatasetId, settings, setSettings } = useApp();
+function SettingsMenu() {
+  const { settings, setSettings } = useApp();
   const { t, fmt } = useI18n();
-  const ai = useAiStatus().data;
-  const stale = useServerIsStale();
-  const dot = ai?.ready ? (ai.demo ? "demo" : "on") : "";
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent | KeyboardEvent) => { if (e instanceof KeyboardEvent ? e.key === "Escape" : !ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", close); document.addEventListener("keydown", close);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", close); };
+  }, [open]);
   return (
-    <div className="app">
-      <aside className="side">
-        <div className="brand">
-          <div className="brand-mark">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11h16v10H4z M3 7h18v4H3z M12 7v14 M12 7c-2.5 0-4-1-4-2.5S9.5 2 12 7c2.5-5 4-2 4-2.5S14.5 7 12 7" /></svg>
-          </div>
-          <b>NCU GIFT<span>{t("brand.tagline")}</span></b>
-        </div>
-        <nav className="nav" aria-label={t("nav.aria")}>
-          {NAV.map((g) => (
-            <div key={g.group}>
-              <div className="nav-group">{t(g.group)}</div>
-              {g.items.map((i) => (
-                <NavLink key={i.to} to={i.to} end={i.to === "/"} className={({ isActive }) => `${i.ai ? "ai " : ""}${isActive ? "active" : ""}`}>
-                  <Icon name={i.icon} size={19} />{t(i.label)}
-                  {i.ai && <span className={`dot ${dot}`} title={dot === "on" ? t("ai.st_on") : dot === "demo" ? t("ai.st_demo") : t("ai.st_off")} />}
-                </NavLink>
-              ))}
-            </div>
-          ))}
-        </nav>
-        <div className="settings" aria-label={t("settings.title")}>
-          <div className="nav-group" style={{ padding: "0 0 2px" }}>{t("settings.title")}</div>
+    <div className="menu" ref={ref}>
+      <button className="icon-btn" aria-expanded={open} aria-label={t("settings.title")} title={t("settings.title")} onClick={() => setOpen(!open)}><Icon name="sliders" size={18} /></button>
+      {open && (
+        <div className="menu-pop" role="dialog" aria-label={t("settings.title")}>
+          <b>{t("settings.title")}</b>
           <label>{t("settings.exceptional")}
             <select value={settings.exceptional} onChange={(e) => setSettings({ ...settings, exceptional: Number(e.target.value) })}>
               {EXC.map((v) => <option key={v} value={v}>{fmt.compact(v)}</option>)}
@@ -78,6 +69,34 @@ export default function Layout() {
             </select>
           </label>
         </div>
+      )}
+    </div>
+  );
+}
+
+function Shell() {
+  const { datasets, dataset, setDatasetId } = useApp();
+  const { open, wide } = useAiDock();
+  const { t } = useI18n();
+  const loc = useLocation();
+  const stale = useServerIsStale();
+  const place = PLACES.find((p) => p.paths.some((x) => (x === "/" ? loc.pathname === "/" : loc.pathname.startsWith(x))));
+  return (
+    <div className={`app ${open ? "dock-open" : ""} ${open && wide ? "dock-wide" : ""}`}>
+      <aside className="side">
+        <div className="brand">
+          <div className="brand-mark">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11h16v10H4z M3 7h18v4H3z M12 7v14 M12 7c-2.5 0-4-1-4-2.5S9.5 2 12 7c2.5-5 4-2 4-2.5S14.5 7 12 7" /></svg>
+          </div>
+          <b>NCU GIFT</b>
+        </div>
+        <nav className="nav" aria-label={t("nav.aria")}>
+          {PLACES.map((p) => (
+            <NavLink key={p.id} to={p.to} end className={() => (place?.id === p.id ? "active" : "")}>
+              <Icon name={p.icon} size={19} />{t(p.label)}
+            </NavLink>
+          ))}
+        </nav>
       </aside>
       <div className="main">
         <header className="topbar">
@@ -85,9 +104,9 @@ export default function Layout() {
           <select id="ds" value={dataset?.id ?? ""} onChange={(e) => setDatasetId(Number(e.target.value))}>
             {datasets.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
-          {dataset && <span className="muted small num">{t("topbar.records", { n: dataset.n_rows.toLocaleString(), years: dataset.years.join(", ") })}</span>}
           <span className="spacer" />
           {dataset?.is_mock && <span className="mock-tag" title={t("topbar.mock_title")}>● {t("topbar.mock")}</span>}
+          <SettingsMenu />
           <LangSwitch />
         </header>
         <main className="content">
@@ -96,10 +115,19 @@ export default function Layout() {
               <b>{t("stale.title")}</b> {t("stale.text")} <code>make dev</code>
             </div>
           )}
+          {place?.tabs && (
+            <nav className="subtabs" aria-label={t(place.label)}>
+              {place.tabs.map((x) => <NavLink key={x.to} to={x.to} className={({ isActive }) => (isActive ? "on" : "")}>{t(x.label)}</NavLink>)}
+            </nav>
+          )}
           <Outlet />
         </main>
-        <AssistantDock />
       </div>
+      <AiDock />
     </div>
   );
+}
+
+export default function Layout() {
+  return <AiDockProvider><Shell /></AiDockProvider>;
 }

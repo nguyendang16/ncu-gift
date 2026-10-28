@@ -1,17 +1,21 @@
+import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { AgentChat } from "../components/AgentChat";
-import { Accordion, Card, PageHeader } from "../components/ui";
-import { useI18n } from "../i18n";
+import { Accordion } from "../components/ui";
 import { useAiReady } from "../components/AiParts";
+import { ChatBody, HistoryList } from "../components/ai/Chat";
+import { useAgentChat } from "../components/ai/useAgentChat";
+import { useI18n } from "../i18n";
 
+/** The analyst full screen: saved conversations on the left, the conversation in the middle (like the large assistants). */
 export default function Assistant() {
   const { t, tx } = useI18n();
   const { status } = useAiReady();
   const [qs] = useSearchParams();
-  const initialId = qs.get("c") ? Number(qs.get("c")) : undefined;
+  const initial = qs.get("c") ? Number(qs.get("c")) : undefined;
+  const chat = useAgentChat();
+  useEffect(() => { if (initial) void chat.open(initial); }, [initial]);        // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <>
-      <PageHeader title={t("ai.page_title")} question={t("q.ai")} desc={t("ai.page_desc")} />
+    <div className="cp-page">
       {status && !status.configured && !status.demo && (
         <Accordion title={t("ai.setup_title")} open>
           <ol style={{ paddingLeft: 20, display: "grid", gap: 8, margin: 0 }}>
@@ -23,9 +27,13 @@ export default function Assistant() {
           <p className="small muted">{t("ai.setup_demo")}</p>
         </Accordion>
       )}
-      <Card ai icon="chat" title={t("ai.chat_title")} sub={t("ai.chat_sub")}>
-        <AgentChat initialId={initialId} />
-      </Card>
-    </>
+      <div className="cp-page-grid">
+        <aside className="cp-page-side">
+          <button className="cp-newbtn" onClick={() => chat.fresh()}>{t("ai.new_chat")}</button>
+          <HistoryList chat={chat} />
+        </aside>
+        <section className="cp-page-main"><ChatBody chat={chat} wide /></section>
+      </div>
+    </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useScenario } from "../api/hooks";
 import { Chart } from "../components/Chart";
-import { Card, Notice, PageHeader, Q, useDebounced } from "../components/ui";
+import { How, Card, Notice, PageHeader, Q, useDebounced } from "../components/ui";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n";
 import { fanOption } from "../lib/options";
@@ -54,7 +54,7 @@ export default function Strategy() {
                   <div className="kpi"><div className="l">{t("strategy.difference")}</div><div className={`v delta ${s.scenario.delta_vs_baseline >= 0 ? "up" : "down"}`}>{s.scenario.delta_vs_baseline >= 0 ? "+" : "−"}{fmt.compact(Math.abs(s.scenario.delta_vs_baseline))}</div><div className="s">{t("strategy.vs_baseline")}</div></div>
                 </div>
                 <Chart option={fanOption(s, fmt, t)} height={300} label={t("strategy.range_aria")} />
-                <div className="how">{t("how.fan")}</div>
+                <How>{t("how.fan")}</How>
                 {s.exceptional_line.entered_gift > 0 && <Notice tone="info">{tx("strategy.exc_arrives", { gift: fmt.ntd(s.exceptional_line.entered_gift), total: fmt.compact(s.exceptional_line.total_if_gift_arrives), note: s.exceptional_line.note })}</Notice>}
               </Card>
               <div style={{ height: 16 }} />

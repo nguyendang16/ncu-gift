@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useAiDock } from "./ai/dockContext";
 import { useAiStatus, useInsights } from "../api/hooks";
 import type { NumberCheck } from "../api/types";
 import { useApp } from "../context/AppContext";
@@ -43,6 +44,7 @@ export function AiSummary({ year }: { year?: number }) {
   const { datasetId, settings } = useApp();
   const { t } = useI18n();
   const { ready } = useAiReady();
+  const { ask } = useAiDock();
   const run = useInsights();
   const r = run.data;
   const labels: Record<string, string> = {
@@ -85,7 +87,10 @@ export function AiSummary({ year }: { year?: number }) {
                     <ol>{a.steps.map((st, j) => <li key={j}>{st}</li>)}</ol>
                     <div className="act-effect"><b>{t("ai.act.effect")}</b> {a.expected_effect}</div>
                     {a.measure && <div className="small muted act-measure">{a.measure}</div>}
-                    <Link className="btn" to={a.link.to}>{a.link.label} →</Link>
+                    <div className="act-btns">
+                      <Link className="btn" to={a.link.to}>{a.link.label} →</Link>
+                      <button className="btn go" onClick={() => ask(t("ai.ask_how", { title: a.title }))}><Icon name="ai" size={15} />{t("ai.ask_help")}</button>
+                    </div>
                   </article>
                 ))}
               </div>

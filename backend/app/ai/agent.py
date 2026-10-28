@@ -42,6 +42,7 @@ class ToolOut:
     table: dict | None = None                   # drawn by the app only
     link: str | None = None
     links: list[dict] = field(default_factory=list)      # Open buttons: {label, to}
+    visual: dict | None = None                  # a chart or card the app draws inside the answer (app-only, never sent to the model)
 
 
 @dataclass
@@ -132,6 +133,21 @@ def _safe_list(fn, *a, **k) -> list:
         return []
 
 
+def _plain(o):
+    """Python-only copy (numpy numbers, dates and NaN become plain JSON values) so a visual can be sent and stored."""
+    if o is None:
+        return None
+    if isinstance(o, dict):
+        return {str(k): _plain(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_plain(v) for v in o]
+    if hasattr(o, "item") and not isinstance(o, (str, bytes)):
+        o = o.item()
+    if isinstance(o, float) and (o != o or o in (float("inf"), float("-inf"))):
+        return None
+    return o if isinstance(o, (str, int, float, bool)) else str(o)
+
+
 def _table(columns: list[str], rows: list[list]) -> dict:
     return {"columns": columns, "rows": rows}
 
@@ -151,7 +167,8 @@ def giving_overview(c, a) -> ToolOut:
            "by_payment_method": _rows(o["methods"]),
            "by_gift_size": [{"name": b["label"], "amount": _m(b["amount"]), "gifts": b["count"]} for b in o["bands"]],
            "by_college": _rows(o["colleges"])}
-    return ToolOut(res, t("agent.sum.overview", year=y, total=res["total"]["text"], ordinary=res["ordinary"]["text"], donors=k["donors"]), t("agent.arg.year", year=y))
+    return ToolOut(res, t("agent.sum.overview", year=y, total=res["total"]["text"], ordinary=res["ordinary"]["text"], donors=k["donors"]), t("agent.arg.year", year=y),
+                   visual={"type": "donut", "rows": [r for r in o["donor_classes"] if r["amount"]]})
 
 
 def giving_by_year(c, a) -> ToolOut:
@@ -161,7 +178,7 @@ def giving_by_year(c, a) -> ToolOut:
            "ordinary_giving_means": f"gifts below {ins._ntd_compact(c.exceptional)}",
            "exceptional_gift_means": f"a single gift of {ins._ntd_compact(c.exceptional)} or more; the `exceptional` figures are the total of these gifts"}
     last = res["years"][-1]
-    return ToolOut(res, t("agent.sum.by_year", first=rows[0]["year"], last=last["year"], total=last["total"]["text"]))
+    return ToolOut(res, t("agent.sum.by_year", first=rows[0]["year"], last=last["year"], total=last["total"]["text"]), visual={"type": "trend", "rows": rows})
 
 
 def why_total_changed(c, a) -> ToolOut:
@@ -169,7 +186,7 @@ def why_total_changed(c, a) -> ToolOut:
     b = ins.bridge(c.df, y, c.exceptional)
     res = {"from_year": b["prev_year"], "to_year": b["year"], "start_total": _m(b["start"]), "end_total": _m(b["end"]),
            "steps": [{"name": s["label"], "effect": _m(s["value"]), "donors": s["donors"]} for s in b["steps"]]}
-    return ToolOut(res, t("agent.sum.bridge", start=res["start_total"]["text"], end=res["end_total"]["text"]), t("agent.arg.year", year=y))
+    return ToolOut(res, t("agent.sum.bridge", start=res["start_total"]["text"], end=res["end_total"]["text"]), t("agent.arg.year", year=y), visual={"type": "bridge", "data": b})
 
 
 def concentration(c, a) -> ToolOut:
@@ -180,7 +197,7 @@ def concentration(c, a) -> ToolOut:
            "top_10_percent_share_of_all_money": _share(k["all"]["top10pct_share"]),
            "top_10_percent_share_of_ordinary_money": _share(k["ordinary"]["top10pct_share"]),
            "largest_single_donor_share": _share(k["all"]["top1_donor_share"])}
-    return ToolOut(res, t("agent.sum.conc", year=y, top1=res["top_1_percent_of_donors_share_of_all_money"]["text"]), t("agent.arg.year", year=y))
+    return ToolOut(res, t("agent.sum.conc", year=y, top1=res["top_1_percent_of_donors_share_of_all_money"]["text"]), t("agent.arg.year", year=y), visual={"type": "concentration", "data": k})
 
 
 def monthly_pattern(c, a) -> ToolOut:
@@ -197,7 +214,8 @@ def monthly_pattern(c, a) -> ToolOut:
     last = out[-1] if out else None
     return ToolOut({"ordinary_giving_means": f"gifts below {ins._ntd_compact(c.exceptional)}",
            "exceptional_gift_means": f"a single gift of {ins._ntd_compact(c.exceptional)} or more; the `exceptional` figures are the total of these gifts", "years": out},
-                   t("agent.sum.months", year=last["year"], month=last["busiest_months"][0]["month"]) if last else t("agent.sum.none"))
+                   t("agent.sum.months", year=last["year"], month=last["busiest_months"][0]["month"]) if last else t("agent.sum.none"),
+                   visual={"type": "season", "data": s})
 
 
 def donor_retention(c, a) -> ToolOut:
@@ -208,7 +226,7 @@ def donor_retention(c, a) -> ToolOut:
                             "share_who_gave_again": _share(f["first_time"]["rate"]),
                             "repeat_donors_share_who_gave_again": _share(f["repeat"]["rate"])} for f in j["funnel"]]}
     g = res["second_gift"][-1] if res["second_gift"] else None
-    return ToolOut(res, t("agent.sum.retention", rate=g["share_who_gave_again"]["text"], year=g["first_time_donors_in"]) if g else t("agent.sum.none"))
+    return ToolOut(res, t("agent.sum.retention", rate=g["share_who_gave_again"]["text"], year=g["first_time_donors_in"]) if g else t("agent.sum.none"), visual={"type": "sankey", "data": j})
 
 
 def at_risk_donors(c, a) -> ToolOut:
@@ -228,7 +246,8 @@ def at_risk_donors(c, a) -> ToolOut:
     cols = [t("agent.col.donor"), t("agent.col.type"), t("agent.col.gave"), t("agent.col.chance"), t("agent.col.at_stake"), t("agent.col.why")]
     rows = [[d["donor_id"], d["donor_class_label"], i18n_money(d["giving_last_year"]), f"{d['p_lapse'] * 100:.0f}%", i18n_money(d["value_at_risk"]),
              "; ".join(d["reasons"][:2])] for d in donors]
-    return ToolOut(res, t("agent.sum.risk", n=len(donors), total=res["value_at_risk_of_listed"]["text"]), t("agent.arg.count", n=n), _table(cols, rows))
+    return ToolOut(res, t("agent.sum.risk", n=len(donors), total=res["value_at_risk_of_listed"]["text"]), t("agent.arg.count", n=n), _table(cols, rows),
+                   visual={"type": "bubble", "points": r.get("points", [])})
 
 
 def i18n_money(x: float) -> str:
@@ -284,7 +303,8 @@ def run_scenario(c, a) -> ToolOut:
     text = t("agent.arg.scenario", r1=f"{r1:g}", r2=f"{r2:g}", mult=f"{mult:g}", rec=f"{rec:g}", gift=ins._ntd_compact(gift))
     lk = guide.link("strategy", r1=f"{r1:g}", r2=f"{r2:g}", mult=f"{mult:g}", rec=f"{rec:g}", gift=f"{gift:g}")
     return ToolOut(res, t("agent.sum.scenario", year=s["projection_year"], base=res["baseline_if_nothing_changes"]["expected"]["text"],
-                          scen=res["with_these_changes"]["expected"]["text"]), text, None, lk["to"], [lk])
+                          scen=res["with_these_changes"]["expected"]["text"]), text, None, lk["to"], [lk],
+                   {"type": "whatif", "settings": {"r1": r1, "r2": r2, "mult": mult, "rec": rec, "gift": gift}, "scenario": s})
 
 
 _LEVERS = [("first_time_retention_uplift_pts", "r1", 0.0, 20.0), ("repeat_retention_uplift_pts", "r2", 0.0, 10.0),
@@ -391,6 +411,9 @@ def plan_to_raise(c, a) -> ToolOut:
     for p in picks:
         if p["link"] not in links:
             links.append(p["link"])
+    plan_visual = None
+    if sc is not None:
+        plan_visual = {"type": "whatif", "settings": {"r1": bs["r1"], "r2": bs["r2"], "mult": bs["mult"], "rec": bs["rec"], "gift": 0.0}, "scenario": _delta(c, **bs)[1], "goal": target}
     summary = t("agent.sum.plan", goal=ins._ntd_compact(target), base=ins._ntd_compact(base))
     # optional: the same goal for one purpose / project
     tid = str(a.get("focus_target_id") or "").strip()
@@ -415,7 +438,7 @@ def plan_to_raise(c, a) -> ToolOut:
             except KeyError:
                 pass
     return ToolOut(out, summary, args_text, _table([t("agent.plan.col_lever"), t("agent.plan.col_need"), t("agent.plan.col_people"), t("agent.plan.col_alone")], rows),
-                   None, links)
+                   None, links, plan_visual)
 
 
 def find_feature(c, a) -> ToolOut:
@@ -466,7 +489,9 @@ def _parse_args(raw: str) -> dict:
         return {}
 
 
-def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: str, history: list[dict], exceptional: float, large: float) -> dict:
+def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: str, history: list[dict], exceptional: float, large: float, emit=None) -> dict:
+    """`emit(event)` (optional) is told what is happening: {"type": "thinking"} before each model call and {"type": "step", "step": ...} as each analysis finishes."""
+    emit = emit or (lambda _e: None)
     s = gate(session)
     cfg = get_config()
     known = known_identifiers(session, dataset_id)
@@ -481,7 +506,7 @@ def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: 
     def execute(name: str, args: dict) -> dict:
         n = len(steps) + 1
         tool = BY_NAME.get(name)
-        step = {"n": n, "tool": name, "title": t(f"agent.tool.{name}") if tool else name, "args_text": "", "summary": "", "table": None, "link": None, "links": [], "args_json": json.dumps(args, ensure_ascii=False), "ok": False}
+        step = {"n": n, "tool": name, "title": t(f"agent.tool.{name}") if tool else name, "args_text": "", "summary": "", "table": None, "link": None, "links": [], "visual": None, "args_json": json.dumps(args, ensure_ascii=False), "ok": False}
         steps.append(step)
         if tool is None:
             step["summary"] = t("agent.step.unknown")
@@ -499,13 +524,14 @@ def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: 
             _log(session, "agent", status="blocked", error="tool result contained a donor identifier", payload_json="")
             raise Blocked("leak", t("ai.block.leak"))
         links = out.links or _default_links(name, args)
-        step.update(args_text=out.args_text, summary=out.summary, table=out.table, links=links, link=out.link or (links[0]["to"] if links else None), ok=True)
+        step.update(args_text=out.args_text, summary=out.summary, table=out.table, links=links, link=out.link or (links[0]["to"] if links else None),
+                    visual=_plain(out.visual), ok=True)
         results.append(out.model)
         arg_log.append(args)
         return payload
 
     if cfg.demo:
-        return _demo(session, ctx, question, execute, steps, results, arg_log)
+        return _demo(session, ctx, question, execute, steps, results, arg_log, emit)
 
     messages: list[dict] = [{"role": "system", "content": AGENT_SYSTEM.format(language=t("ai.lang_name"), glossary=t("ai.glossary"))}]
     for h in history[-3:]:
@@ -515,6 +541,7 @@ def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: 
     answer = ""
     for step_no in range(MAX_STEPS):
         last = step_no == MAX_STEPS - 1
+        emit({"type": "thinking", "n": step_no})
         try:
             resp = client.chat(messages, feature="agent", tools=tools, tool_choice="none" if last else None)
         except AiError as e:
@@ -530,6 +557,7 @@ def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: 
             for tc in resp.tool_calls[:4]:
                 args = _parse_args(tc["arguments"])
                 payload = execute(tc["name"], args)
+                emit({"type": "step", "step": steps[-1]})
                 messages.append({"role": "tool", "tool_call_id": tc["id"], "content": json.dumps(payload, ensure_ascii=False)})
             continue
         answer = resp.text
@@ -543,6 +571,7 @@ def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: 
     bad_cites = [c for c in cited if c < 1 or c > len(steps)]
     if (not v["ok"] or bad_cites) and results:
         repairs = 1
+        emit({"type": "checking"})
         fix = [{"role": "assistant", "content": answer},
                {"role": "user", "content": "These figures or sources are not in the tool results: " + ", ".join(v["unverified"] + [f"[{c}]" for c in bad_cites]) +
                 ". Rewrite the answer using only figures quoted from the tool results and citing only existing source numbers. Same language and format."}]
@@ -567,7 +596,7 @@ def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: 
 
 # ------------------------------------------------------------------------ demo (no key): a keyword planner, canned wording
 
-def _demo(session, ctx, question, execute, steps, results, arg_log) -> dict:
+def _demo(session, ctx, question, execute, steps, results, arg_log, emit=lambda _e: None) -> dict:
     q = question.lower()
     plan: list[tuple[str, dict]]
     if any(k in q for k in ("risk", "stop", "lapse", "lose", "call", "流失", "風險", "致電", "停止")):
@@ -588,8 +617,10 @@ def _demo(session, ctx, question, execute, steps, results, arg_log) -> dict:
         plan = [("giving_overview", {})]
     lines = []
     for name, args in plan:
+        emit({"type": "thinking", "n": 0})
         payload = execute(name, args)
         st = steps[-1]
+        emit({"type": "step", "step": st})
         if st["ok"]:
             lines.append(f"{st['summary']} [{st['n']}]")
     body = " ".join(lines) or t("agent.sum.none")

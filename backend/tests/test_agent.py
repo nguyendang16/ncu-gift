@@ -275,3 +275,56 @@ def test_an_answer_saved_before_open_buttons_existed_reopens_with_an_empty_butto
     got = client.get(f"/api/ai/conversations/{cid}").json()
     assert got["messages"][1]["steps"][0]["links"] == []
     client.delete(f"/api/ai/conversations/{cid}")
+
+
+def test_an_old_database_without_the_feedback_column_is_upgraded_in_place(tmp_path):
+    import sqlite3
+    from sqlalchemy import create_engine, inspect
+    from app import seed
+    path = tmp_path / "old.db"
+    c = sqlite3.connect(path)
+    c.execute("CREATE TABLE ai_messages (id INTEGER PRIMARY KEY, conversation_id INTEGER, role VARCHAR(12), text TEXT, payload_json TEXT, created_at DATETIME)")
+    c.commit(); c.close()
+    old_engine = seed.engine
+    try:
+        seed.engine = create_engine(f"sqlite:///{path}")
+        seed.Base.metadata.create_all(seed.engine)
+        seed.init_db()
+        assert "feedback" in {col["name"] for col in inspect(seed.engine).get_columns("ai_messages")}
+    finally:
+        seed.engine = old_engine
+
+
+def test_streaming_sends_each_step_then_the_answer_and_saves_the_turn(client, mock_id):
+    from app.ai.client import set_transport
+    set_transport(Fake(call(("giving_by_year", {}), ("concentration", {})), lambda body: say(f"Total was {tool_results(body)[0]['years'][-1]['total']['text']} [1].")))
+    with client.stream("POST", "/api/ai/agent/stream", json={"dataset_id": mock_id, "question": "show me", "exceptional_threshold": 10_000_000}) as r:
+        events = [json.loads(line) for line in r.iter_lines() if line]
+    kinds = [e["type"] for e in events]
+    assert kinds[0] == "thinking" and kinds.count("step") == 2 and kinds[-1] == "answer"
+    steps = [e["step"] for e in events if e["type"] == "step"]
+    assert steps[0]["visual"]["type"] == "trend" and steps[1]["visual"]["type"] == "concentration"      # charts are drawn inside the answer
+    final = events[-1]["result"]
+    assert final["verification"]["ok"] and final["conversation_id"] and final["message_id"]
+    got = client.get(f"/api/ai/conversations/{final['conversation_id']}").json()
+    assert got["messages"][1]["steps"][0]["visual"]["type"] == "trend"                                   # and they come back when the chat is reopened
+
+
+def test_streaming_reports_problems_as_an_error_event_not_a_hung_request(client, mock_id, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY")
+    with client.stream("POST", "/api/ai/agent/stream", json={"dataset_id": mock_id, "question": "hello"}) as r:
+        events = [json.loads(line) for line in r.iter_lines() if line]
+    assert events[-1]["type"] == "error" and events[-1]["code"] in ("ai_blocked", "ai_error")
+
+
+def test_feedback_on_an_answer_is_stored_and_counted(client, mock_id):
+    from app.ai.client import set_transport
+    set_transport(Fake(say("Fine.")))
+    mid = ask(client, mock_id, "Rate me").json()["message_id"]
+    before = client.get("/api/ai/feedback-summary").json()
+    assert client.post(f"/api/ai/messages/{mid}/feedback", json={"value": 1}).json()["feedback"] == 1
+    after = client.get("/api/ai/feedback-summary").json()
+    assert after["useful"] == before["useful"] + 1 and after["unrated"] == before["unrated"] - 1
+    assert client.post(f"/api/ai/messages/{mid}/feedback", json={"value": -1}).json()["feedback"] == -1
+    assert client.post(f"/api/ai/messages/{mid}/feedback", json={"value": 0}).json()["feedback"] == 0
+    assert client.post("/api/ai/messages/999999/feedback", json={"value": 1}).status_code == 404

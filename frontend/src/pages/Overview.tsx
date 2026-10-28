@@ -7,7 +7,7 @@ import type { Breakdown } from "../api/types";
 import { AiSummary } from "../components/AiParts";
 import { Chart } from "../components/Chart";
 import { PurposeBoard } from "../components/PurposeBoard";
-import { Accordion, Bar, Card, Icon, Notice, PageHeader, Q, Section, Seg, type IconName } from "../components/ui";
+import { How, Accordion, Bar, Card, Icon, Notice, PageHeader, Q, Section, Seg, type IconName } from "../components/ui";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n";
 import type { Key } from "../i18n/en";
@@ -295,14 +295,14 @@ export default function Overview() {
                   </div>
                   {!cutsOk && <p className="muted small">{t("chart.band_order")}</p>}
                   <Q q={trend}>{(r) => <Chart option={comboOption(r, bandCuts.current, fmt, t)} label={t("chart.total_aria")} exportName={t("chart.total_title")} height={360} />}</Q>
-                  <div className="how">{t("how.combo")}</div>
+                  <How>{t("how.combo")}</How>
                 </Card>
                 <Card icon="chart" title={t("chart.bridge_title")} sub={t("chart.bridge_sub", { year: o.year, compare: o.prev_year ?? "–" })} help="tip.bridge"
                   right={<Seg label={t("chart.bridge_mode")} value={mode} onChange={setMode} options={[{ v: "ordinary", l: t("scope.ordinary") }, { v: "all", l: t("scope.all") }]} />}>
                   <Q q={bridge}>{(b) => (
                     <>
                       <Chart option={waterfallOption(b, mode, fmt, t)} label={t("chart.bridge_aria")} exportName={t("chart.bridge_title")} height={310} />
-                      {mode === "ordinary" && <div className="how">{t("how.bridge_exc", { change: signed(b.exceptional_end - b.exceptional_start) })}</div>}
+                      {mode === "ordinary" && <How>{t("how.bridge_exc", { change: signed(b.exceptional_end - b.exceptional_start) })}</How>}
                     </>
                   )}</Q>
                 </Card>
@@ -373,7 +373,7 @@ export default function Overview() {
               <div className="grid g2">
                 <Card icon="calendar" title={t("chart.season_title")} sub={t("chart.season_sub")}>
                   <Q q={season}>{(s) => <Chart option={heatmapOption(s, fmt)} label={t("chart.season_aria")} exportName={t("chart.season_title")} height={110 + 56 * s.years.length} />}</Q>
-                  <div className="how">{t("how.season")}</div>
+                  <How>{t("how.season")}</How>
                 </Card>
                 <Card icon="calendar" title={t("chart.monthly_title", { year: o.year })} sub={o.scope_label}
                   right={<label className="small muted"><input type="checkbox" checked={log} onChange={(e) => setLog(e.target.checked)} /> {t("chart.log")}</label>}>
@@ -387,7 +387,7 @@ export default function Overview() {
                 <div className="grid g-main">
                   <Card icon="pie" title={t("chart.conc_title")} sub={t("chart.conc_sub")} help="tip.conc">
                     <Chart option={concentrationOption(c, t)} label={t("chart.conc_aria")} exportName={t("chart.conc_title")} height={330} />
-                    <div className="how">{t("how.conc")}</div>
+                    <How>{t("how.conc")}</How>
                   </Card>
                   <div className="stack">
                     <div className="kpi warn"><div className="l">{t("conc.top1_all")}</div><div className="v">{fmt.pct(c.all.top1pct_share, 0)}</div><div className="s">{t("conc.donors_n", { n: Math.max(1, Math.ceil(c.all.n_donors / 100)) })}</div></div>
