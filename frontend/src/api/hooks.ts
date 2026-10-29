@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLang } from "../i18n";
 import { api } from "./client";
-import type { AgentOut, AcceptOut, ApplyRefOut, RefStatus, AiCallDetail, AiCallRow, AiSettingsIn, AiStatus, AiTest, AiTurn, AskOut, Bridge, Brief, Capability, ClassifyOut, Concentration, Highlight, InsightsOut, MapOut, Season, TreeNode, ConfirmOut, Dataset, Journey, Leak, MatchEval, Meta, Overview, Preview, Rank, ReviewItem, Risk, Roll, Scenario, ScenarioIn, Solicited, Target, TrendRow } from "./types";
+import type { ConversationOut, ConversationRow, AgentOut, AcceptOut, ApplyRefOut, RefStatus, AiCallDetail, AiCallRow, AiSettingsIn, AiStatus, AiTest, AiTurn, AskOut, Bridge, Brief, Capability, ClassifyOut, Concentration, Highlight, InsightsOut, MapOut, Season, TreeNode, ConfirmOut, Dataset, Journey, Leak, MatchEval, Meta, Overview, Preview, Rank, ReviewItem, Risk, Roll, Scenario, ScenarioIn, Solicited, Target, TrendRow } from "./types";
 
 type ClassCompare = Overview["class_compare"];
 
@@ -132,6 +132,13 @@ export function useAiStatus() {
   const lang = useLang();
   return useQuery({ queryKey: ["ai-status", lang], queryFn: () => api<AiStatus>("/api/ai/status"), staleTime: 5_000 });
 }
+const NEEDED = ["agent_links", "conversations", "plan_to_raise", "find_feature", "insight_actions", "agent_stream", "feedback", "visuals"];
+/** True when the running API is older than this page (it was started before an update and never restarted). */
+export function useServerIsStale() {
+  const q = useQuery({ queryKey: ["ai-version"], retry: false, staleTime: 60_000, queryFn: () => api<{ features: string[] }>("/api/ai/version") });
+  if (q.isPending) return false;
+  return q.isError || NEEDED.some((f) => !q.data?.features.includes(f));
+}
 export function useAiSettings() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (b: AiSettingsIn) => api<AiStatus>("/api/ai/settings", { method: "PUT", body: b }), onSuccess: () => qc.invalidateQueries({ queryKey: ["ai-status"] }) });
@@ -150,8 +157,22 @@ export function useAsk() {
 export function useAgent() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (b: { dataset_id?: number; question: string; history: AiTurn[]; exceptional_threshold: number; large_threshold: number }) => api<AgentOut>("/api/ai/agent", { body: b }),
-    onSettled: () => { qc.invalidateQueries({ queryKey: ["ai-status"] }); qc.invalidateQueries({ queryKey: ["ai-log"] }); },
+    mutationFn: (b: { dataset_id?: number; question: string; conversation_id?: number; history: AiTurn[]; exceptional_threshold: number; large_threshold: number }) => api<AgentOut>("/api/ai/agent", { body: b }),
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["ai-status"] }); qc.invalidateQueries({ queryKey: ["ai-log"] }); qc.invalidateQueries({ queryKey: ["ai-conversations"] }); },
+  });
+}
+export function useConversations() {
+  return useQuery({ queryKey: ["ai-conversations"], queryFn: () => api<ConversationRow[]>("/api/ai/conversations", { params: { limit: 50 } }) });
+}
+export function useConversation(id?: number) {
+  return useQuery({ queryKey: ["ai-conversation", id], enabled: id !== undefined, queryFn: () => api<ConversationOut>(`/api/ai/conversations/${id}`) });
+}
+/** One conversation, or all of them when no id is given. */
+export function useDeleteConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id?: number) => api<{ deleted: number }>(id === undefined ? "/api/ai/conversations" : `/api/ai/conversations/${id}`, { method: "DELETE" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ai-conversations"] }); },
   });
 }
 export function useInsights() {

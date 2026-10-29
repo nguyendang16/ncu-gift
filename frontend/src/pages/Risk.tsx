@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useRisk } from "../api/hooks";
 import { Chart } from "../components/Chart";
-import { Bar, Card, Notice, PageHeader, Q } from "../components/ui";
+import { How, Bar, Card, Notice, PageHeader, Q } from "../components/ui";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n";
 import { bubbleOption } from "../lib/options";
@@ -22,7 +22,7 @@ export default function Risk() {
             {r.points.length > 0 && (
               <Card icon="risk" title={t("bubble.title")} sub={t("bubble.sub", { n: r.points.length })} help="tip.bubble">
                 <Chart option={bubbleOption(r.points, fmt, t)} label={t("bubble.aria")} height={360} />
-                <div className="how">{t("how.bubble")}</div>
+                <How>{t("how.bubble")}</How>
               </Card>
             )}
             <div className="grid g-main">

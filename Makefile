@@ -11,7 +11,7 @@ web:              ## React on http://localhost:5173  (proxies /api to the backen
 	cd frontend && npm run dev
 
 dev:              ## both servers; Ctrl-C stops both
-	@trap 'kill 0' INT TERM; (cd backend && ./.venv/bin/python -m app) & (cd frontend && npm run dev) & wait
+	@trap 'kill 0' INT TERM; (cd backend && NCU_GIFT_RELOAD=1 ./.venv/bin/python -m app) & (cd frontend && npm run dev) & wait
 
 test:             ## backend tests + frontend type-check
 	cd backend && ./.venv/bin/python -m pytest -q tests

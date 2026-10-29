@@ -10,6 +10,7 @@ What makes it safe and checkable:
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass, field
 from types import SimpleNamespace
@@ -20,8 +21,8 @@ from sqlalchemy.orm import Session
 from .. import i18n
 from ..i18n import t
 from ..services import insights as ins, journey as jr, matching, risk as rk, scenario as scn, stats
-from ..services.frame import InsufficientData, years_of
-from . import client
+from ..services.frame import InsufficientData, cash, years_of
+from . import actions as act_mod, client, guide
 from .client import AiError
 from .config import get_config
 from .facts import _m, _p, _rows, _share
@@ -40,6 +41,8 @@ class ToolOut:
     args_text: str = ""
     table: dict | None = None                   # drawn by the app only
     link: str | None = None
+    links: list[dict] = field(default_factory=list)      # Open buttons: {label, to}
+    visual: dict | None = None                  # a chart or card the app draws inside the answer (app-only, never sent to the model)
 
 
 @dataclass
@@ -68,6 +71,15 @@ TOOLS: list[Tool] = [
     Tool("find_prospects", "Existing donors who are the best prospects for one target (use an id from list_matching_targets). The app shows the list itself.",
          {"target_id": {"type": "string", "description": "A target id such as 'sub:Student clubs' from list_matching_targets."},
           "count": {"type": "integer", "minimum": 5, "maximum": 50}}, ["target_id"]),
+    Tool("plan_to_raise", "Goal planning: what it would take to RAISE an extra amount of ordinary giving next year, lever by lever (keeping more first-time or repeat donors, "
+         "recruiting more, recurring giving), how many typical gifts that is, and how much of the money at risk would need to be kept. Optionally for one purpose/project. "
+         "Use for 'I want to raise about NT$1M, what should we do?'. The app shows the options table itself.",
+         {"target_ntd": {"type": "number", "minimum": 100000, "maximum": 100000000, "description": "The extra amount to raise, in NT$ (1 million = 1000000)."},
+          "focus_target_id": {"type": "string", "description": "Optional: a target id from list_matching_targets when the goal is for one purpose, department or project."}},
+         ["target_ntd"]),
+    Tool("find_feature", "Where something is in this system and how to use it (pages, charts, uploads, downloads, the review queue...). Use for 'where can I see...' or 'how do I...'. "
+         "The app shows Open buttons for the pages you name.",
+         {"query": {"type": "string", "description": "What the person wants to do or see, in a few words. Omit to list every page."}}),
     Tool("run_scenario", "What-if on next year's ORDINARY giving: change retention, new-donor inflow or recurring conversion. A sensitivity analysis, not a forecast.",
          {"first_time_retention_uplift_pts": {"type": "number", "minimum": 0, "maximum": 20, "description": "Extra percentage points of first-time donors who give again."},
           "repeat_retention_uplift_pts": {"type": "number", "minimum": 0, "maximum": 10},
@@ -103,6 +115,39 @@ def _year(c, a) -> int:
     return y if y in c.years else c.years[-1]
 
 
+_DEFAULT_PAGE = {"giving_overview": "overview", "giving_by_year": "overview", "why_total_changed": "bridge", "concentration": "concentration",
+                 "monthly_pattern": "seasonality", "donor_retention": "journey", "at_risk_donors": "risk", "list_matching_targets": "matching"}
+
+
+def _default_links(name: str, args: dict) -> list[dict]:
+    """The Open button under a result: the page where the person can look at the same thing themselves."""
+    if name == "find_prospects" and args.get("target_id"):
+        return [guide.link("matching", target=str(args["target_id"]))]
+    return [guide.link(_DEFAULT_PAGE[name])] if name in _DEFAULT_PAGE else []
+
+
+def _safe_list(fn, *a, **k) -> list:
+    try:
+        return fn(*a, **k)
+    except (InsufficientData, ValueError, KeyError, IndexError):
+        return []
+
+
+def _plain(o):
+    """Python-only copy (numpy numbers, dates and NaN become plain JSON values) so a visual can be sent and stored."""
+    if o is None:
+        return None
+    if isinstance(o, dict):
+        return {str(k): _plain(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_plain(v) for v in o]
+    if hasattr(o, "item") and not isinstance(o, (str, bytes)):
+        o = o.item()
+    if isinstance(o, float) and (o != o or o in (float("inf"), float("-inf"))):
+        return None
+    return o if isinstance(o, (str, int, float, bool)) else str(o)
+
+
 def _table(columns: list[str], rows: list[list]) -> dict:
     return {"columns": columns, "rows": rows}
 
@@ -122,7 +167,8 @@ def giving_overview(c, a) -> ToolOut:
            "by_payment_method": _rows(o["methods"]),
            "by_gift_size": [{"name": b["label"], "amount": _m(b["amount"]), "gifts": b["count"]} for b in o["bands"]],
            "by_college": _rows(o["colleges"])}
-    return ToolOut(res, t("agent.sum.overview", year=y, total=res["total"]["text"], ordinary=res["ordinary"]["text"], donors=k["donors"]), t("agent.arg.year", year=y))
+    return ToolOut(res, t("agent.sum.overview", year=y, total=res["total"]["text"], ordinary=res["ordinary"]["text"], donors=k["donors"]), t("agent.arg.year", year=y),
+                   visual={"type": "donut", "rows": [r for r in o["donor_classes"] if r["amount"]]})
 
 
 def giving_by_year(c, a) -> ToolOut:
@@ -132,7 +178,7 @@ def giving_by_year(c, a) -> ToolOut:
            "ordinary_giving_means": f"gifts below {ins._ntd_compact(c.exceptional)}",
            "exceptional_gift_means": f"a single gift of {ins._ntd_compact(c.exceptional)} or more; the `exceptional` figures are the total of these gifts"}
     last = res["years"][-1]
-    return ToolOut(res, t("agent.sum.by_year", first=rows[0]["year"], last=last["year"], total=last["total"]["text"]))
+    return ToolOut(res, t("agent.sum.by_year", first=rows[0]["year"], last=last["year"], total=last["total"]["text"]), visual={"type": "trend", "rows": rows})
 
 
 def why_total_changed(c, a) -> ToolOut:
@@ -140,7 +186,7 @@ def why_total_changed(c, a) -> ToolOut:
     b = ins.bridge(c.df, y, c.exceptional)
     res = {"from_year": b["prev_year"], "to_year": b["year"], "start_total": _m(b["start"]), "end_total": _m(b["end"]),
            "steps": [{"name": s["label"], "effect": _m(s["value"]), "donors": s["donors"]} for s in b["steps"]]}
-    return ToolOut(res, t("agent.sum.bridge", start=res["start_total"]["text"], end=res["end_total"]["text"]), t("agent.arg.year", year=y))
+    return ToolOut(res, t("agent.sum.bridge", start=res["start_total"]["text"], end=res["end_total"]["text"]), t("agent.arg.year", year=y), visual={"type": "bridge", "data": b})
 
 
 def concentration(c, a) -> ToolOut:
@@ -151,7 +197,7 @@ def concentration(c, a) -> ToolOut:
            "top_10_percent_share_of_all_money": _share(k["all"]["top10pct_share"]),
            "top_10_percent_share_of_ordinary_money": _share(k["ordinary"]["top10pct_share"]),
            "largest_single_donor_share": _share(k["all"]["top1_donor_share"])}
-    return ToolOut(res, t("agent.sum.conc", year=y, top1=res["top_1_percent_of_donors_share_of_all_money"]["text"]), t("agent.arg.year", year=y))
+    return ToolOut(res, t("agent.sum.conc", year=y, top1=res["top_1_percent_of_donors_share_of_all_money"]["text"]), t("agent.arg.year", year=y), visual={"type": "concentration", "data": k})
 
 
 def monthly_pattern(c, a) -> ToolOut:
@@ -168,7 +214,8 @@ def monthly_pattern(c, a) -> ToolOut:
     last = out[-1] if out else None
     return ToolOut({"ordinary_giving_means": f"gifts below {ins._ntd_compact(c.exceptional)}",
            "exceptional_gift_means": f"a single gift of {ins._ntd_compact(c.exceptional)} or more; the `exceptional` figures are the total of these gifts", "years": out},
-                   t("agent.sum.months", year=last["year"], month=last["busiest_months"][0]["month"]) if last else t("agent.sum.none"))
+                   t("agent.sum.months", year=last["year"], month=last["busiest_months"][0]["month"]) if last else t("agent.sum.none"),
+                   visual={"type": "season", "data": s})
 
 
 def donor_retention(c, a) -> ToolOut:
@@ -179,7 +226,7 @@ def donor_retention(c, a) -> ToolOut:
                             "share_who_gave_again": _share(f["first_time"]["rate"]),
                             "repeat_donors_share_who_gave_again": _share(f["repeat"]["rate"])} for f in j["funnel"]]}
     g = res["second_gift"][-1] if res["second_gift"] else None
-    return ToolOut(res, t("agent.sum.retention", rate=g["share_who_gave_again"]["text"], year=g["first_time_donors_in"]) if g else t("agent.sum.none"))
+    return ToolOut(res, t("agent.sum.retention", rate=g["share_who_gave_again"]["text"], year=g["first_time_donors_in"]) if g else t("agent.sum.none"), visual={"type": "sankey", "data": j})
 
 
 def at_risk_donors(c, a) -> ToolOut:
@@ -199,7 +246,8 @@ def at_risk_donors(c, a) -> ToolOut:
     cols = [t("agent.col.donor"), t("agent.col.type"), t("agent.col.gave"), t("agent.col.chance"), t("agent.col.at_stake"), t("agent.col.why")]
     rows = [[d["donor_id"], d["donor_class_label"], i18n_money(d["giving_last_year"]), f"{d['p_lapse'] * 100:.0f}%", i18n_money(d["value_at_risk"]),
              "; ".join(d["reasons"][:2])] for d in donors]
-    return ToolOut(res, t("agent.sum.risk", n=len(donors), total=res["value_at_risk_of_listed"]["text"]), t("agent.arg.count", n=n), _table(cols, rows))
+    return ToolOut(res, t("agent.sum.risk", n=len(donors), total=res["value_at_risk_of_listed"]["text"]), t("agent.arg.count", n=n), _table(cols, rows),
+                   visual={"type": "bubble", "points": r.get("points", [])})
 
 
 def i18n_money(x: float) -> str:
@@ -253,12 +301,153 @@ def run_scenario(c, a) -> ToolOut:
            "with_these_changes": {"expected": _m(s["scenario"]["expected"]), "range_low": _m(s["scenario"]["low"]), "range_high": _m(s["scenario"]["high"]),
                                   "difference_vs_baseline": _m(s["scenario"]["delta_vs_baseline"])}}
     text = t("agent.arg.scenario", r1=f"{r1:g}", r2=f"{r2:g}", mult=f"{mult:g}", rec=f"{rec:g}", gift=ins._ntd_compact(gift))
-    link = f"/strategy?r1={r1:g}&r2={r2:g}&mult={mult:g}&rec={rec:g}&gift={gift:g}"
+    lk = guide.link("strategy", r1=f"{r1:g}", r2=f"{r2:g}", mult=f"{mult:g}", rec=f"{rec:g}", gift=f"{gift:g}")
     return ToolOut(res, t("agent.sum.scenario", year=s["projection_year"], base=res["baseline_if_nothing_changes"]["expected"]["text"],
-                          scen=res["with_these_changes"]["expected"]["text"]), text, None, link)
+                          scen=res["with_these_changes"]["expected"]["text"]), text, None, lk["to"], [lk],
+                   {"type": "whatif", "settings": {"r1": r1, "r2": r2, "mult": mult, "rec": rec, "gift": gift}, "scenario": s})
 
 
-IMPL = {f.__name__: f for f in (giving_overview, giving_by_year, why_total_changed, concentration, monthly_pattern, donor_retention, at_risk_donors,
+_LEVERS = [("first_time_retention_uplift_pts", "r1", 0.0, 20.0), ("repeat_retention_uplift_pts", "r2", 0.0, 10.0),
+           ("new_donor_inflow_multiplier", "mult", 1.0, 1.5), ("recurring_conversion_pct", "rec", 0.0, 30.0)]
+_STRETCH = {"r1": 10.0, "r2": 5.0, "mult": 1.25, "rec": 15.0}       # a demanding but plausible effort for each lever
+
+
+def _delta(c, r1=0.0, r2=0.0, mult=1.0, rec=0.0) -> tuple[float, dict]:
+    s = scn.scenario(c.df, c.exceptional, r1, r2, mult, rec, 0.0)
+    return s["scenario"]["delta_vs_baseline"], s
+
+
+def _solve(f, lo: float, hi: float, target: float) -> float | None:
+    """Smallest x in [lo, hi] with f(x) >= target (f is non-decreasing); None if even hi falls short."""
+    if f(hi) < target:
+        return None
+    for _ in range(24):
+        mid = (lo + hi) / 2
+        if f(mid) >= target:
+            hi = mid
+        else:
+            lo = mid
+    return hi
+
+
+def plan_to_raise(c, a) -> ToolOut:
+    target = _clamp(a.get("target_ntd"), 100_000, 100_000_000, 1_000_000)
+    base_delta, s0 = _delta(c)
+    base = s0["baseline"]["expected"]
+    obs, coh = s0["observed"], s0["cohorts"]
+    n_first, n_repeat, n_new = obs["first_time_retention"]["n"], obs["repeat_retention"]["n"], coh[2]["donors"]
+    people = {"r1": n_first, "r2": n_repeat, "mult": n_new}
+    levers, rows = [], []
+    for name, key, lo, hi in _LEVERS:
+        f = lambda x, key=key: _delta(c, **{key: x})[0]
+        need = _solve(f, lo, hi, target)
+        top = f(hi)
+        if need is None:
+            levers.append({"lever": name, "reaches_target_alone": False, "most_it_can_add": _m(top), "at_setting": hi if key != "mult" else f"{(hi - 1) * 100:.0f}% more new donors"})
+            rows.append([t(f"agent.lever.{key}"), t("agent.plan.cannot", most=ins._ntd_compact(top)), "–", t("agent.plan.no")])
+            continue
+        shown = need if key != "mult" else (need - 1) * 100
+        who = people.get(key)
+        extra = None if who is None else round(who * (need / 100 if key in ("r1", "r2") else (need - 1)))
+        levers.append({"lever": name, "reaches_target_alone": True, "what_it_takes": t(f"agent.plan.need_{key}", x=f"{shown:.1f}".rstrip("0").rstrip(".")), "needed_setting": round(shown, 1), "setting_unit": {"r1": "percentage points", "r2": "percentage points",
+                       "mult": "% more new donors than last year", "rec": "% of retained donors moved to recurring giving"}[key], "about_extra_donors": extra})
+        rows.append([t(f"agent.lever.{key}"), t(f"agent.plan.need_{key}", x=f"{shown:.1f}".rstrip("0").rstrip(".")), "" if extra is None else f"≈ {extra}", t("agent.plan.yes")])
+    # a balanced effort: every lever scaled together until the goal is met
+    full = {k: v for k, v in _STRETCH.items()}
+    scale_for = lambda sc: _delta(c, r1=min(full["r1"] * sc, 20), r2=min(full["r2"] * sc, 10), mult=1 + min((full["mult"] - 1) * sc, 0.5), rec=min(full["rec"] * sc, 30))[0]
+    sc = _solve(scale_for, 0.0, 2.0, target)
+    balanced = None
+    if sc is not None:
+        bs = {"r1": round(min(full["r1"] * sc, 20), 1), "r2": round(min(full["r2"] * sc, 10), 1), "mult": round(1 + min((full["mult"] - 1) * sc, 0.5), 2),
+              "rec": round(min(full["rec"] * sc, 30), 1)}
+        balanced = {"first_time_retention_uplift_points": bs["r1"], "repeat_retention_uplift_points": bs["r2"], "new_donor_inflow_multiplier": bs["mult"],
+                    "new_donors_percent_more_than_last_year": round((bs["mult"] - 1) * 100, 1), "recurring_conversion_percent": bs["rec"],
+                    "described_as": [t("agent.plan.need_r1", x=f"{bs['r1']:g}"), t("agent.plan.need_r2", x=f"{bs['r2']:g}"),
+                                     t("agent.plan.need_mult", x=f"{(bs['mult'] - 1) * 100:.1f}".rstrip("0").rstrip(".")), t("agent.plan.need_rec", x=f"{bs['rec']:g}")], "adds_about": _m(_delta(c, **bs)[0]),
+                    "meaning": "all four levers moved together; a demanding but plausible effort when the share of stretch used is below 100%",
+                    "share_of_a_demanding_effort_used": round(min(sc, 2.0) * 100)}
+    else:
+        top = scale_for(2.0)
+        balanced = {"reaches_target": False, "most_all_levers_can_add": _m(top)}
+    # typical gifts
+    cy = cash(c.df[c.df["year"] == c.years[-1]])
+    ordv = cy[cy["amount_ntd"] < c.exceptional]["amount_ntd"]
+    gifts = {}
+    if len(ordv):
+        med, p75 = float(ordv.median()), float(ordv.quantile(0.75))
+        gifts = {"ordinary_gifts_last_year": int(len(ordv)), "median_gift": _m(med), "upper_quartile_gift": _m(p75),
+                 "extra_gifts_needed_at_median": math.ceil(target / med), "extra_gifts_needed_at_upper_quartile": math.ceil(target / p75),
+                 "as_share_of_last_years_gifts": _share(math.ceil(target / med) / len(ordv))}
+        mid = ordv[(ordv >= 100_000) & (ordv < 1_000_000)]
+        if len(mid) >= 3:
+            gifts["mid_level_gifts_100k_to_1m"] = {"last_year": int(len(mid)), "median": _m(float(mid.median())), "extra_needed": math.ceil(target / float(mid.median()))}
+    out = {"goal": {"extra_ordinary_giving": _m(target), "year": s0["projection_year"],
+                    "baseline_ordinary_giving_if_nothing_changes": _m(base), "range_of_baseline": [_m(s0["baseline"]["low"]), _m(s0["baseline"]["high"])],
+                    "assumption": "the goal is EXTRA ordinary giving on top of the baseline; tell the person this assumption and offer to redo it for one project"},
+           "levers_each_on_its_own": levers, "levers_scope": "organisation-wide ordinary giving, even when a focus target is given: say so if there is a focus", "balanced_effort": balanced, "typical_gifts": gifts}
+    links = []
+    if sc is not None:
+        q = {"r1": balanced["first_time_retention_uplift_points"], "r2": balanced["repeat_retention_uplift_points"], "mult": balanced["new_donor_inflow_multiplier"],
+             "rec": balanced["recurring_conversion_percent"]}
+        links.append(guide.link("strategy", **q))
+    # money at risk
+    try:
+        r = rk.risk_report(c.df, top_n=50)
+        d = r["donors"]
+        v20, v50 = sum(x["value_at_risk"] for x in d[:20]), sum(x["value_at_risk"] for x in d[:50])
+        out["money_at_risk"] = {"top_20_value_at_risk": _m(v20), "top_50_value_at_risk": _m(v50),
+                                "share_of_top_20_to_keep_to_reach_goal": _share(target / v20) if target <= v20 else "more than all of it",
+                                "share_of_top_50_to_keep_to_reach_goal": _share(target / v50) if target <= v50 else "more than all of it"}
+        rows.append([t("agent.plan.keep"), t("agent.plan.keep_need", pct=ins._pct(target / v20, 0) if target <= v20 else ">100%", amount=ins._ntd_compact(v20)), "≈ 20", t("agent.plan.yes") if target <= v20 else t("agent.plan.no")])
+        links.append(guide.link("risk"))
+    except InsufficientData:
+        pass
+    if gifts:
+        rows.append([t("agent.plan.gifts"), t("agent.plan.gifts_need", n=gifts["extra_gifts_needed_at_median"], gift=ins._ntd_compact(med)), f"≈ {gifts['extra_gifts_needed_at_median']}", t("agent.plan.yes")])
+    # concrete next actions, from the system's own playbook (evidence and steps written from the data, not generic advice)
+    cands = _safe_list(act_mod.candidates, c.df, c.years[-1], c.exceptional, c.large)
+    picks = [act_mod.playbook(x) for x in act_mod.top(cands, 4)]
+    out["concrete_next_actions"] = [{"title": p["title"], "why": p["why"], "steps": p["steps"], "expected_effect": p["expected_effect"], "where_in_the_system": guide.title(p["page"])} for p in picks]
+    for p in picks:
+        if p["link"] not in links:
+            links.append(p["link"])
+    plan_visual = None
+    if sc is not None:
+        plan_visual = {"type": "whatif", "settings": {"r1": bs["r1"], "r2": bs["r2"], "mult": bs["mult"], "rec": bs["rec"], "gift": 0.0}, "scenario": _delta(c, **bs)[1], "goal": target}
+    summary = t("agent.sum.plan", goal=ins._ntd_compact(target), base=ins._ntd_compact(base))
+    # optional: the same goal for one purpose / project
+    tid = str(a.get("focus_target_id") or "").strip()
+    args_text = t("agent.arg.goal", goal=ins._ntd_compact(target))
+    if tid:
+        valid = {x["id"]: x for x in matching.list_targets(c.df)}
+        if tid in valid and not (valid[tid]["kind"] == "project" and not c.share_names):
+            kind, name = matching.parse_target(tid)
+            sub_df = cash(c.df[matching._mask(c.df, kind, name)])
+            last = sub_df[sub_df["year"] == c.years[-1]]["amount_ntd"]
+            past = set(sub_df[sub_df["year"] < c.years[-1]]["donor_code"].dropna()) - set(sub_df[sub_df["year"] == c.years[-1]]["donor_code"].dropna())
+            focus = {"target": valid[tid]["label"], "donors_who_ever_gave_to_it": int(valid[tid]["donors"]), "gifts_last_year": int(len(last)),
+                     "given_last_year": _m(float(last.sum())), "donors_who_gave_before_but_not_last_year": len(past)}
+            if len(last):
+                m = float(last.median())
+                focus.update({"median_gift": _m(m), "extra_gifts_needed_at_median": math.ceil(target / m)})
+            out["focus"] = focus
+            args_text += " · " + valid[tid]["label"]
+            links.append(guide.link("matching", target=tid))
+            try:
+                links.append(guide.link("briefs", project=tid))
+            except KeyError:
+                pass
+    return ToolOut(out, summary, args_text, _table([t("agent.plan.col_lever"), t("agent.plan.col_need"), t("agent.plan.col_people"), t("agent.plan.col_alone")], rows),
+                   None, links, plan_visual)
+
+
+def find_feature(c, a) -> ToolOut:
+    ids = guide.search(str(a.get("query") or ""))
+    return ToolOut({"pages": [guide.describe(i) for i in ids]}, t("agent.sum.features", n=len(ids)), "",
+                   None, None, [guide.link(i) for i in ids])
+
+
+IMPL = {f.__name__: f for f in (plan_to_raise, find_feature, giving_overview, giving_by_year, why_total_changed, concentration, monthly_pattern, donor_retention, at_risk_donors,
                                 list_matching_targets, find_prospects, run_scenario)}
 
 
@@ -271,17 +460,25 @@ AGENT_SYSTEM = ("You are the analyst inside NCU GIFT, a fundraising analytics to
                 "- After every sentence that contains a figure, cite the tool results it came from as [n] using each result's `source` number, e.g. [1] or [1][2].\n"
                 "- For 'who should we call / ask' questions, run at_risk_donors or find_prospects. The app shows the donor table itself next to your answer: "
                 "do not list donors, just say what the list is and the main pattern.\n"
+                "- For goal questions ('I want to raise about NT$1M', 'how do we reach X', 'what should we do to ...'), call plan_to_raise with the amount "
+                "(1 million = 1000000; 萬 = 10000) and, only if the person names one, a focus target. The goal means EXTRA ordinary giving on top of the baseline: say so. "
+                "Answer in four short parts: what the goal means; the two or three most realistic options with their figures in plain words (people, gifts, shares), "
+                "saying plainly when one lever alone cannot reach it; one recommended combination quoting the balanced-effort `described_as` lines and each lever's `what_it_takes` exactly as given (never convert, re-word or re-interpret them: '3.7% more new donors' is not '3.7 times'); the next three concrete actions, "
+                "taken from `concrete_next_actions` in the tool result (say what to do, with whom or what, and in which page; never generic advice like 'review the options'). "
+                "The app adds the Open buttons. Up to about 220 words for these.\n"
+                "- For 'where can I see ...' or 'how do I ...' questions, call find_feature and describe each page in one or two sentences: what it shows and how to use it. "
+                "Never invent a feature that the tool did not list. The app adds the Open buttons.\n"
                 "- For 'what if' questions, put the person's wording into run_scenario. It is a sensitivity analysis, not a forecast: say so briefly.\n"
                 "- Never forecast total revenue or a year beyond the data. If no tool can answer, say what is missing.\n"
                 "- If the question is not about NCU's giving data (weather, general knowledge, anything else), do NOT call a tool: say in one sentence that you can only help with the giving data.\n"
-                "- Keep it under about 130 words, plain sentences, at most 4 short bullet points.\n" + RULES)
+                "- Keep other answers under about 130 words, plain sentences, at most 4 short bullet points.\n{glossary}" + RULES)
 
 CITE = re.compile(r"\[(\d{1,2})\]")
 
 
 def _strip_citations(text: str) -> tuple[str, list[int]]:
     cited = [int(x) for x in CITE.findall(text)]
-    return CITE.sub("", text), cited
+    return re.sub(r"(?m)^\s*\d{1,2}[.)]\s+", "", CITE.sub("", text)), cited         # "1." list numbering is not a figure
 
 
 def _parse_args(raw: str) -> dict:
@@ -292,7 +489,9 @@ def _parse_args(raw: str) -> dict:
         return {}
 
 
-def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: str, history: list[dict], exceptional: float, large: float) -> dict:
+def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: str, history: list[dict], exceptional: float, large: float, emit=None) -> dict:
+    """`emit(event)` (optional) is told what is happening: {"type": "thinking"} before each model call and {"type": "step", "step": ...} as each analysis finishes."""
+    emit = emit or (lambda _e: None)
     s = gate(session)
     cfg = get_config()
     known = known_identifiers(session, dataset_id)
@@ -307,7 +506,7 @@ def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: 
     def execute(name: str, args: dict) -> dict:
         n = len(steps) + 1
         tool = BY_NAME.get(name)
-        step = {"n": n, "tool": name, "title": t(f"agent.tool.{name}") if tool else name, "args_text": "", "summary": "", "table": None, "link": None, "args_json": json.dumps(args, ensure_ascii=False), "ok": False}
+        step = {"n": n, "tool": name, "title": t(f"agent.tool.{name}") if tool else name, "args_text": "", "summary": "", "table": None, "link": None, "links": [], "visual": None, "args_json": json.dumps(args, ensure_ascii=False), "ok": False}
         steps.append(step)
         if tool is None:
             step["summary"] = t("agent.step.unknown")
@@ -324,15 +523,17 @@ def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: 
             step["summary"] = t("ai.block.leak")
             _log(session, "agent", status="blocked", error="tool result contained a donor identifier", payload_json="")
             raise Blocked("leak", t("ai.block.leak"))
-        step.update(args_text=out.args_text, summary=out.summary, table=out.table, link=out.link, ok=True)
+        links = out.links or _default_links(name, args)
+        step.update(args_text=out.args_text, summary=out.summary, table=out.table, links=links, link=out.link or (links[0]["to"] if links else None),
+                    visual=_plain(out.visual), ok=True)
         results.append(out.model)
         arg_log.append(args)
         return payload
 
     if cfg.demo:
-        return _demo(session, ctx, question, execute, steps, results, arg_log)
+        return _demo(session, ctx, question, execute, steps, results, arg_log, emit)
 
-    messages: list[dict] = [{"role": "system", "content": AGENT_SYSTEM.format(language=t("ai.lang_name"))}]
+    messages: list[dict] = [{"role": "system", "content": AGENT_SYSTEM.format(language=t("ai.lang_name"), glossary=t("ai.glossary"))}]
     for h in history[-3:]:
         messages += [{"role": "user", "content": h["question"][:300]}, {"role": "assistant", "content": h["answer"][:700]}]
     messages.append({"role": "user", "content": question.strip()[:600]})
@@ -340,6 +541,7 @@ def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: 
     answer = ""
     for step_no in range(MAX_STEPS):
         last = step_no == MAX_STEPS - 1
+        emit({"type": "thinking", "n": step_no})
         try:
             resp = client.chat(messages, feature="agent", tools=tools, tool_choice="none" if last else None)
         except AiError as e:
@@ -355,6 +557,7 @@ def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: 
             for tc in resp.tool_calls[:4]:
                 args = _parse_args(tc["arguments"])
                 payload = execute(tc["name"], args)
+                emit({"type": "step", "step": steps[-1]})
                 messages.append({"role": "tool", "tool_call_id": tc["id"], "content": json.dumps(payload, ensure_ascii=False)})
             continue
         answer = resp.text
@@ -368,6 +571,7 @@ def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: 
     bad_cites = [c for c in cited if c < 1 or c > len(steps)]
     if (not v["ok"] or bad_cites) and results:
         repairs = 1
+        emit({"type": "checking"})
         fix = [{"role": "assistant", "content": answer},
                {"role": "user", "content": "These figures or sources are not in the tool results: " + ", ".join(v["unverified"] + [f"[{c}]" for c in bad_cites]) +
                 ". Rewrite the answer using only figures quoted from the tool results and citing only existing source numbers. Same language and format."}]
@@ -392,7 +596,7 @@ def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: 
 
 # ------------------------------------------------------------------------ demo (no key): a keyword planner, canned wording
 
-def _demo(session, ctx, question, execute, steps, results, arg_log) -> dict:
+def _demo(session, ctx, question, execute, steps, results, arg_log, emit=lambda _e: None) -> dict:
     q = question.lower()
     plan: list[tuple[str, dict]]
     if any(k in q for k in ("risk", "stop", "lapse", "lose", "call", "流失", "風險", "致電", "停止")):
@@ -413,8 +617,10 @@ def _demo(session, ctx, question, execute, steps, results, arg_log) -> dict:
         plan = [("giving_overview", {})]
     lines = []
     for name, args in plan:
+        emit({"type": "thinking", "n": 0})
         payload = execute(name, args)
         st = steps[-1]
+        emit({"type": "step", "step": st})
         if st["ok"]:
             lines.append(f"{st['summary']} [{st['n']}]")
     body = " ".join(lines) or t("agent.sum.none")

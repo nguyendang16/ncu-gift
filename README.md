@@ -13,7 +13,7 @@ Open http://localhost:5173. The first start creates `data/ncu_gift.db` and loads
 
 | Command | What it does |
 |---|---|
-| `make test` | 93 backend tests, frontend type-check, and the English/繁體中文 consistency check |
+| `make test` | 105 backend tests, frontend type-check, and the English/繁體中文 consistency check |
 | `make types` | regenerate TypeScript types after editing `backend/app/schemas.py` |
 | `make samples` | rewrite `sample_data/*.xlsx` |
 | `make reset` | delete the database and uploads |
@@ -46,13 +46,19 @@ Try the flexible input: on *Data & mapping*, download `mock_donations_renamed.xl
 
 ## The AI analyst
 
-The AI assistant page is an **analyst that cannot make up numbers**. Instead of reading one fixed summary, the model is given ten tools that call the system's own analyses (overview, why the total changed, concentration, retention, who is likely to stop, best prospects for a target, what-if scenario, ...). It decides which to run; the system runs them; the model words the result.
+The analyst is an AI that **cannot make up numbers**. The model is given tools that call the system's own analyses (overview, why the total changed, concentration, retention, who is likely to stop, best prospects for a target, what-if scenario, a goal planner, and a "where is it in the system" finder). It decides which to run; the system runs them; the model words the result.
 
-- Every figure in an answer is checked against the tool results (or the question); each sentence cites its source as a numbered circle, and the card below shows which analysis, with which settings, produced it.
-- Lists of donors (who to call, who to ask) are drawn by the app from the tool result and **never pass through the model**; the tool results the model does see contain no donor name or code (the same safety gate as before checks each one).
-- *What-if* questions are turned into the scenario settings (clamped to safe ranges) and link to the Strategy explorer with those settings already set.
-- Limits: at most 6 model calls per question, only the allow-listed tools, invalid arguments become a message to the model rather than an error. Function calling on this model needs `reasoning_effort` "none", which the client sets.
-- Measured quality: `python backend/scripts/benchmark_agent.py --api http://localhost:8000 --dataset <id> --out docs/agent_benchmark.md` (see [docs/agent_benchmark.md](docs/agent_benchmark.md)). On the synthetic dataset, 42 questions in English and 繁體中文, the last three runs were 42 of 42; read the caveats in that file before quoting it.
+- **Where it lives:** the **Ask AI** button at the bottom right of every page (or **Ctrl/⌘ + K**) opens a side panel that sits beside the page, like the assistants in Microsoft Copilot and Google Workspace; it can be widened, and the arrow opens the full-screen version at `/ai` (history on the left, conversation in the middle, like ChatGPT and Claude). Both share the same **saved history** (stored only in your local database; search, reopen, continue, delete one or all). The empty state offers four questions that fit the page you are on.
+- **You watch it work.** Answers are streamed as they happen: each analysis appears as it finishes ("Plan to reach a goal ✓"), then "Writing the answer…" and "Checking every figure…".
+- **Answers you can see, and touch.** The analysis behind an answer is drawn inside it (the waterfall for "why did the total change", the concentration curve, the monthly heat map, the donor flow, the trend). A what-if or a goal plan comes with **live sliders**: drag a lever and the range updates at once, with a progress bar toward the goal. No AI is involved when you drag; it is the same calculation as the Strategy explorer.
+- **Rate every answer.** Thumbs up/down, copy and try again sit under each answer. Ratings are stored (`GET /api/ai/feedback-summary`): they are the evidence for "did this help staff?".
+- **Questions it handles:** figures ("how many donors gave in 2025?"), who to call or ask, *what if* scenarios, **goals** ("I want to raise about NT$1M: what should we do?": which levers could do it, how many typical gifts that is, how much of the money at risk must be kept, a balanced plan, and three concrete next actions), and **where things are** ("where can I see who might stop giving?").
+- **Buttons to the right page:** every answer ends with Go-to chips: one Open button to the page where you can see the same thing yourself, with the settings already applied (Strategy explorer sliders, the matching target, the Data tab).
+- **Every figure has a source.** Each sentence cites the analysis it came from as a numbered circle, the card below shows which analysis and settings produced it, and every number in the answer is checked against the tool results.
+- **Donor lists never pass through the model.** Tables of donors are drawn by the app; the tool results the model sees contain no donor name or code (the same safety gate as before checks each one).
+- **Limits:** at most 6 model calls per question, only the allow-listed tools, arguments are validated and clamped, an invalid call becomes a message to the model rather than an error. Function calling on this model needs `reasoning_effort` "none", which the client sets.
+- **Overview AI summary:** four observations and **four detailed next actions**. The model chooses and orders the actions and explains the situation; the steps, the expected effect (always an "if ..." with its assumption written next to it, never a forecast) and how to tell it worked come from the system's playbook and use figures computed from your data, so they are concrete and always checkable.
+- **Measured quality:** `python backend/scripts/benchmark_agent.py --api http://localhost:8000 --dataset <id> --out docs/agent_benchmark.md` (see [docs/agent_benchmark.md](docs/agent_benchmark.md)). On the synthetic dataset, 52 questions in English and 繁體中文, the last three runs passed every question; read the caveats in that file before quoting it.
 
 ## AI features (OpenAI `gpt-6-luna`)
 

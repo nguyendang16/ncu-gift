@@ -161,3 +161,24 @@ class RefMeta(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     filename: Mapped[str] = mapped_column(String(300))
     uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class AiConversation(Base):
+    """A saved chat with the analyst. Questions, answers and the cards under them stay on this machine, in this database."""
+    __tablename__ = "ai_conversations"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(120))
+    dataset_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class AiMessage(Base):
+    __tablename__ = "ai_messages"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    conversation_id: Mapped[int] = mapped_column(ForeignKey("ai_conversations.id"), index=True)
+    role: Mapped[str] = mapped_column(String(12))                       # user | assistant
+    text: Mapped[str] = mapped_column(Text)
+    payload_json: Mapped[str] = mapped_column(Text, default="{}")      # assistant: steps, verification, demo
+    feedback: Mapped[int] = mapped_column(Integer, default=0)           # staff rating of an answer: 1 useful, -1 not useful, 0 none
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

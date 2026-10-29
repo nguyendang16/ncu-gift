@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAcceptSuggestions, useApplyReference, useCapability, useClassify, useConfirm, useMapColumns, useMeta, usePreview, useReference, useResolve, useReview, useSolicited, useUploadReference } from "../api/hooks";
 import type { Capability, Option, ReviewItem } from "../api/types";
 import { Chart } from "../components/Chart";
@@ -256,7 +256,9 @@ function Extras() {
 export default function DataPage() {
   const { datasetId, dataset } = useApp();
   const { t } = useI18n();
-  const [tab, setTab] = useState<Tab>("upload");
+  const [qs] = useSearchParams();
+  const wanted = qs.get("tab") as Tab | null;
+  const [tab, setTab] = useState<Tab>(wanted && ["upload", "reference", "capability", "review", "extras"].includes(wanted) ? wanted : "upload");
   const cap = useCapability(datasetId);
   return (
     <>

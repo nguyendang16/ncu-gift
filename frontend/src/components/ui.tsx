@@ -30,6 +30,19 @@ const PATHS = {
   repeat: "M17 2l4 4-4 4 M3 11V9a3 3 0 0 1 3-3h15 M7 22l-4-4 4-4 M21 13v2a3 3 0 0 1-3 3H3",
   send: "M4 12l16-8-6 16-3-7z",
   chart: "M4 20V10 M10 20V4 M16 20v-8 M22 20H2",
+  plus: "M12 5v14 M5 12h14",
+  clock: "M12 7v5l3 2 M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z",
+  expand: "M4 14v6h6 M20 10V4h-6 M4 20l7-7 M20 4l-7 7",
+  close: "M6 6l12 12 M18 6L6 18",
+  copy: "M9 9h11v11H9z M5 15V5h10",
+  up: "M12 19V6 M6 11l6-6 6 6",
+  down: "M12 5v13 M6 13l6 6 6-6",
+  retry: "M20 12a8 8 0 1 1-2.6-5.9 M20 4v5h-5",
+  search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M21 21l-4.5-4.5",
+  trash: "M5 7h14 M10 11v6 M14 11v6 M6 7l1 13h10l1-13 M9 7V4h6v3",
+  arrow: "M5 12h14 M13 6l6 6-6 6",
+
+  sliders: "M4 6h10 M18 6h2 M4 12h4 M12 12h8 M4 18h12 M20 18h0 M16 4v4 M10 10v4 M18 16v4",
 } as const;
 export type IconName = keyof typeof PATHS;
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
@@ -41,13 +54,12 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
 }
 
 /* ------------------------------------------------------------------ page chrome */
-export function PageHeader({ title, desc, question, children }: { title: string; desc?: string; question?: string; children?: ReactNode }) {
+/** The title only. The explanation sits behind the small "?" so the page stays calm; the one-line question chip is gone. */
+export function PageHeader({ title, desc, children }: { title: string; desc?: string; question?: string; children?: ReactNode }) {
   return (
     <div className="page-h rise">
       <div>
-        {question && <div className="q-chip"><Icon name="info" size={15} />{question}</div>}
-        <h1>{title}</h1>
-        {desc && <p>{desc}</p>}
+        <h1>{title}{desc && <InfoTip text={desc} />}</h1>
       </div>
       {children && <div className="controls">{children}</div>}
     </div>
@@ -57,7 +69,7 @@ export function PageHeader({ title, desc, question, children }: { title: string;
 export function Section({ title, desc, id, children }: { title: string; desc?: string; id?: string; children: ReactNode }) {
   return (
     <section id={id} aria-labelledby={id ? `${id}-h` : undefined}>
-      <div className="section-h"><h2 id={id ? `${id}-h` : undefined}>{title}</h2>{desc && <p>{desc}</p>}</div>
+      <div className="section-h"><h2 id={id ? `${id}-h` : undefined}>{title}{desc && <InfoTip text={desc} />}</h2></div>
       {children}
     </section>
   );
@@ -93,7 +105,7 @@ export function Accordion({ title, children, open, onToggle }: { title: string; 
 }
 
 /** A "?" next to a technical term. Click or keyboard to open; the text is plain language. */
-export function InfoTip({ k }: { k: Key }) {
+export function InfoTip({ k, text }: { k?: Key; text?: string }) {
   const { t, tx } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
@@ -109,9 +121,15 @@ export function InfoTip({ k }: { k: Key }) {
   return (
     <span className="tip" ref={ref}>
       <button type="button" aria-expanded={open} aria-label={t("ui.explain")} onClick={() => setOpen(!open)}>?</button>
-      {open && <span className="pop" role="note">{tx(k)}</span>}
+      {open && <span className="pop" role="note">{text ?? (k ? tx(k) : null)}</span>}
     </span>
   );
+}
+
+/** "How to read this chart", folded away until someone wants it. */
+export function How({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
+  return <details className="how"><summary>{t("ui.how_to_read")}</summary><p>{children}</p></details>;
 }
 
 /* ------------------------------------------------------------------ numbers */
