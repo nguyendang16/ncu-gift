@@ -707,6 +707,11 @@ export const en = {
   "gp.how": "How is this calculated?",
   "gp.how_text": "Next year's ordinary giving is three groups added together: last year's first-time donors who give again, last year's repeat donors who give again, and new donors. For each group: people × chance they give again × their typical gift.",
   "gp.example": "For example: {n} donors × {rate} give again × {gift} typical gift ≈ {amount}.",
+  "gp.your_plan": "Your plan",
+  "gp.if_nothing": "If nothing changes",
+  "gp.chart_range": "Next year, with and without your changes (likely range)",
+  "gp.chart_adds": "What your changes add",
+  "gp.chart_empty": "Move a slider or press Try this to see what each group adds.",
 } as const;
 
 export type Key = keyof typeof en;

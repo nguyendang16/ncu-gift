@@ -7,7 +7,7 @@ import { Chart } from "../components/Chart";
 import { Icon, Notice, PageHeader, Q, useDebounced, type IconName } from "../components/ui";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n";
-import { fanOption } from "../lib/options";
+import { addsOption, addsParts, rangeOption } from "../lib/planCharts";
 
 type S = { r1: number; r2: number; mult: number; rec: number; gift: number };
 const ZERO: S = { r1: 0, r2: 0, mult: 1, rec: 0, gift: 0 };
@@ -104,7 +104,11 @@ export default function Strategy() {
             <span className="small">{delta >= goal ? t("gp.goal_met", { goal: fmt.compact(goal) }) : t("gp.goal_pct", { pct: Math.max(0, Math.floor((delta / goal) * 100)), goal: fmt.compact(goal) })}</span>
           </div>
         )}
-        <Chart option={fanOption(sc, fmt, t)} height={250} label={t("strategy.range_aria")} />
+        <div className="gp-chart"><div className="cap">{t("gp.chart_range")}</div><Chart option={rangeOption(sc, fmt, t)} height={150} label={t("strategy.range_aria")} /></div>
+        <div className="gp-chart">
+          <div className="cap">{t("gp.chart_adds")}</div>
+          {addsParts(sc).length ? <Chart option={addsOption(addsParts(sc), fmt)} height={40 + 46 * addsParts(sc).length} label={t("gp.chart_adds")} /> : <p className="small muted gp-empty">{t("gp.chart_empty")}</p>}
+        </div>
         <p className="small muted gp-cap">{t("gp.caption")}</p>
         <div className="gp-btns">
           <button className="btn go" onClick={() => ask(goal > 0 ? t("gp.ask_goal", { goal: fmt.compact(goal) }) : t("gp.ask_plain"))}><Icon name="ai" size={15} />{t("gp.ask")}</button>

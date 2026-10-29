@@ -703,4 +703,9 @@ export const zhTW: Record<BaseKey, string> & Partial<Record<Key, string>> = {
   "gp.how": "這是怎麼算的？",
   "gp.how_text": "明年的一般捐款是三組相加：去年的首次捐款人再捐款、去年的重複捐款人再捐款，以及新捐款人。每一組的算法是：人數 × 再次捐款的機率 × 一般捐款金額。",
   "gp.example": "例如：{n} 位 × {rate} 再次捐款 × {gift} 一般捐款金額 ≈ {amount}。",
+  "gp.your_plan": "你的做法",
+  "gp.if_nothing": "維持現狀",
+  "gp.chart_range": "明年：做與不做的差別（可能範圍）",
+  "gp.chart_adds": "你的做法增加了什麼",
+  "gp.chart_empty": "拖動滑桿或按「試試看」，就能看到每一組增加多少。",
 };
