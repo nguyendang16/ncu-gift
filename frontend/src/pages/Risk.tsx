@@ -35,9 +35,9 @@ export default function Risk() {
                       <div className="kpi"><div className="l">{t("risk.trained")}</div><div className="v">{m.n_train}</div><div className="s">{t("risk.trained_sub", { pct: fmt.pct(m.lapse_rate_train, 0) })}</div></div>
                     </div>
                     <div className="scroll"><table className="t">
-                      <thead><tr><th>{t("risk.th_contacts")}</th><th className="r">{t("risk.th_hit")}</th><th className="r">{t("risk.th_flagged")}</th><th className="r">{t("risk.th_random")}</th><th className="r">{t("risk.th_ratio")}</th></tr></thead>
+                      <thead><tr><th>{t("risk.th_contacts")}</th><th className="r">{t("risk.th_hit")}</th><th className="r">{t("risk.th_all")}</th><th className="r">{t("risk.th_once")}</th><th className="r">{t("risk.th_flagged")}</th><th className="r">{t("risk.th_random")}</th></tr></thead>
                       <tbody>{m.precision_at_k.map((p) => (
-                        <tr key={p.k}><td>{t("risk.top_k", { k: p.k })}</td><td className="r num">{p.hits} ({fmt.pct(p.precision, 0)})</td><td className="r num">{fmt.compact(p.value_captured)}</td><td className="r num">{fmt.compact(p.random_expected)}</td><td className="r num">{p.lift_vs_random ? `${p.lift_vs_random.toFixed(1)}×` : "–"}</td></tr>
+                        <tr key={p.k}><td>{t("risk.top_k", { k: p.k })}</td><td className="r num">{p.hits} ({fmt.pct(p.precision, 0)}) <span className="muted">{fmt.pct(p.ci_low, 0)}–{fmt.pct(p.ci_high, 0)}</span></td><td className="r num">{fmt.pct(m.lapse_rate_test, 0)}</td><td className="r num">{fmt.pct(p.rule_once_precision, 0)}</td><td className="r num">{fmt.compact(p.value_captured)}</td><td className="r num">{fmt.compact(p.value_captured_biggest)}</td></tr>
                       ))}</tbody></table></div>
                   </>
                 ) : <Notice tone="warn">{t("risk.insample_notice")}</Notice>}

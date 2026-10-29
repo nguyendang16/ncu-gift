@@ -37,6 +37,18 @@ def evaluate(dataset_id: int | None = None, session: Session = Depends(get_sessi
     return matching.evaluate(df)
 
 
+@router.post("/plan")
+def plan(body: schemas.PlanIn, session: Session = Depends(get_session)):
+    """What it would take to reach an extra amount of ordinary giving next year. The same calculation the AI analyst uses, without the AI."""
+    from types import SimpleNamespace
+    from ..ai.agent import plan_to_raise
+    from ..services.frame import years_of
+    _, df = frame_for(session, body.dataset_id)
+    ctx = SimpleNamespace(df=df, years=years_of(df), exceptional=exc_threshold(body.exceptional_threshold), large=config.DEFAULT_LARGE_THRESHOLD, share_names=True)
+    out = plan_to_raise(ctx, {"target_ntd": body.target_ntd, "include_actions": False})
+    return out.model
+
+
 @router.post("/scenario", response_model=schemas.ScenarioOut)
 def scenario(body: schemas.ScenarioIn, session: Session = Depends(get_session)):
     _, df = frame_for(session, body.dataset_id)

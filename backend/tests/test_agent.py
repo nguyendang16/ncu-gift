@@ -328,3 +328,16 @@ def test_feedback_on_an_answer_is_stored_and_counted(client, mock_id):
     assert client.post(f"/api/ai/messages/{mid}/feedback", json={"value": -1}).json()["feedback"] == -1
     assert client.post(f"/api/ai/messages/{mid}/feedback", json={"value": 0}).json()["feedback"] == 0
     assert client.post("/api/ai/messages/999999/feedback", json={"value": 1}).status_code == 404
+
+
+def test_the_goal_planner_endpoint_gives_the_plan_without_the_ai(client, mock_id, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY")                                         # no key, no AI: the page must still work
+    p = client.post("/api/plan", json={"dataset_id": mock_id, "target_ntd": 1_000_000, "exceptional_threshold": 10_000_000}).json()
+    assert p["goal"]["extra_ordinary_giving"]["value"] == 1_000_000 and p["concrete_next_actions"] == []
+    lv = {x["lever"]: x for x in p["levers_each_on_its_own"]}
+    assert lv["first_time_retention_uplift_pts"]["reaches_target_alone"] and lv["first_time_retention_uplift_pts"]["what_it_takes"]
+    assert p["balanced_effort"]["adds_about"]["value"] >= 990_000 and p["typical_gifts"]["extra_gifts_needed_at_median"] >= 1
+    big = client.post("/api/plan", json={"dataset_id": mock_id, "target_ntd": 90_000_000}).json()
+    assert any(not x["reaches_target_alone"] and x["most_it_can_add"]["value"] > 0 for x in big["levers_each_on_its_own"])
+    zh = client.post("/api/plan", json={"dataset_id": mock_id, "target_ntd": 1_000_000}, headers={"Accept-Language": "zh-TW"}).json()
+    assert "個百分點" in zh["levers_each_on_its_own"][0]["what_it_takes"]

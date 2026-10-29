@@ -31,6 +31,17 @@ export type RiskPoint = S["RiskPoint"];
 export type RefStatus = S["RefStatus"];
 export type ApplyRefOut = S["ApplyRefOut"];
 export type AcceptOut = S["AcceptOut"];
+/** The plan the Goal planner shows (the API returns it as a plain object; this is the part the page reads). */
+export type Money = { value: number; text: string };
+export type PlanLever = { lever: string; reaches_target_alone: boolean; what_it_takes?: string; needed_setting?: number; about_extra_donors?: number | null; most_it_can_add?: Money };
+export type Plan = {
+  goal: { extra_ordinary_giving: Money; year: number };
+  levers_each_on_its_own: PlanLever[];
+  balanced_effort: { reaches_target?: boolean; most_all_levers_can_add?: Money; first_time_retention_uplift_points?: number; repeat_retention_uplift_points?: number;
+    new_donor_inflow_multiplier?: number; recurring_conversion_percent?: number; adds_about?: Money };
+  typical_gifts: { median_gift?: Money; extra_gifts_needed_at_median?: number };
+  money_at_risk?: { top_20_value_at_risk: Money; share_of_top_20_to_keep_to_reach_goal: Money | string };
+};
 export type AgentOut = S["AgentOut"];
 export type AgentLink = S["AgentLink"];
 export type Action = S["Action"];

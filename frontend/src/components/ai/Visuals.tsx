@@ -5,7 +5,8 @@ import type { AgentStep, Scenario, TrendRow } from "../../api/types";
 import { useApp } from "../../context/AppContext";
 import { useI18n, type Fmt } from "../../i18n";
 import { C, axisText, baseOption, yMoney } from "../../lib/chart";
-import { bubbleOption, concentrationOption, donutOption, fanOption, heatmapOption, sankeyOption, waterfallOption, type T } from "../../lib/options";
+import { bubbleOption, concentrationOption, donutOption, heatmapOption, sankeyOption, waterfallOption, type T } from "../../lib/options";
+import { addsOption, addsParts, rangeOption } from "../../lib/planCharts";
 import { Chart } from "../Chart";
 import { useDebounced } from "../ui";
 
@@ -61,7 +62,8 @@ function WhatIf({ v }: { v: { settings: { r1: number; r2: number; mult: number; 
           <span className="small">{t("ai.wi_goal_pct", { goal: fmt.compact(v.goal), pct: Math.max(0, Math.round((delta / v.goal) * 100)) })}</span>
         </div>
       ) : null}
-      <Chart option={fanOption(sc, fmt, t)} height={190} label={t("strategy.range_aria")} />
+      <Chart option={rangeOption(sc, fmt, t, v.goal ?? 0)} height={150} label={t("strategy.range_aria")} />
+      {addsParts(sc).length > 0 && <Chart option={addsOption(addsParts(sc), fmt)} height={36 + 42 * addsParts(sc).length} label={t("gp.chart_adds")} />}
       <div className="wi-sliders">
         <Slider label={t("strategy.l_first")} value={s.r1} min={0} max={20} step={0.5} onChange={(r1) => setS({ ...s, r1 })} text={t("strategy.pp", { n: `+${s.r1}` })} />
         <Slider label={t("strategy.l_repeat")} value={s.r2} min={0} max={10} step={0.5} onChange={(r2) => setS({ ...s, r2 })} text={t("strategy.pp", { n: `+${s.r2}` })} />

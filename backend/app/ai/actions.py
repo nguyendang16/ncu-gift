@@ -47,10 +47,7 @@ def candidates(df: pd.DataFrame, year: int, exceptional: float, large: float, *,
     r = _safe(rk.risk_report, df, top_n=20)
     if r and r["donors"]:
         var = sum(x["value_at_risk"] for x in r["donors"])
-        m = r["metrics"]
         ev = {"donors": len(r["donors"]), "value_at_stake": _m(var)}
-        if m:
-            ev["share_of_the_top_20_flagged_in_the_test_that_really_stopped"] = _share(m["precision_at_k"][0]["precision"])
         add("call_list", ev, {"adds": _m(var * 0.25), "assumption": t("act.assume.keep_quarter")}, var * 0.25)
     # recurring giving
     s = _safe(scn.scenario, df, exceptional, 0.0, 0.0, 1.0, 10.0, 0.0)
@@ -128,7 +125,7 @@ def playbook(c: dict) -> dict:
     ns = {**_flat(c["evidence"]), **_flat(c.get("estimated_effect"))}
     i = c["id"]
     effect = _say(f"act.{i}.effect", ns) if c.get("estimated_effect") else t("act.noimpact")
-    why_key = f"act.{i}.why_basic" if i == "call_list" and "share_of_the_top_20_flagged_in_the_test_that_really_stopped" not in c["evidence"] else f"act.{i}.why"
+    why_key = f"act.{i}.why_basic" if i == "call_list" else f"act.{i}.why"
     return {"candidate_id": i, "title": t(f"act.{i}.title"), "why": _say(why_key, ns),
             "steps": [_say(f"act.{i}.s{n}", ns) for n in (1, 2, 3)], "now": "", "expected_effect": effect, "measure": t(f"act.{i}.measure"), "page": c["page"], "link": guide.link(c["page"])}
 

@@ -1547,6 +1547,43 @@
         }
       }
     },
+    "/api/plan": {
+      "post": {
+        "summary": "Plan",
+        "description": "What it would take to reach an extra amount of ordinary giving next year. The same calculation the AI analyst uses, without the AI.",
+        "operationId": "plan_api_plan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/scenario": {
       "post": {
         "summary": "Scenario",
@@ -5585,6 +5622,41 @@
         ],
         "title": "OverviewOut"
       },
+      "PlanIn": {
+        "properties": {
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Id"
+          },
+          "target_ntd": {
+            "type": "number",
+            "title": "Target Ntd"
+          },
+          "exceptional_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exceptional Threshold"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_ntd"
+        ],
+        "title": "PlanIn"
+      },
       "PrecisionAtK": {
         "properties": {
           "k": {
@@ -5599,24 +5671,25 @@
             "type": "number",
             "title": "Precision"
           },
+          "ci_low": {
+            "type": "number",
+            "title": "Ci Low"
+          },
+          "ci_high": {
+            "type": "number",
+            "title": "Ci High"
+          },
+          "rule_once_precision": {
+            "type": "number",
+            "title": "Rule Once Precision"
+          },
           "value_captured": {
             "type": "number",
             "title": "Value Captured"
           },
-          "random_expected": {
+          "value_captured_biggest": {
             "type": "number",
-            "title": "Random Expected"
-          },
-          "lift_vs_random": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lift Vs Random"
+            "title": "Value Captured Biggest"
           }
         },
         "type": "object",
@@ -5624,9 +5697,11 @@
           "k",
           "hits",
           "precision",
+          "ci_low",
+          "ci_high",
+          "rule_once_precision",
           "value_captured",
-          "random_expected",
-          "lift_vs_random"
+          "value_captured_biggest"
         ],
         "title": "PrecisionAtK"
       },
