@@ -189,9 +189,11 @@ class PrecisionAtK(BaseModel):
     k: int
     hits: int
     precision: float
+    ci_low: float
+    ci_high: float
+    rule_once_precision: float
     value_captured: float
-    random_expected: float
-    lift_vs_random: float | None
+    value_captured_biggest: float
 
 
 class RiskMetrics(BaseModel):

@@ -68,7 +68,7 @@ M: dict[str, str] = {
 
     # ---------------------------------------------------------------- risk
     "risk.one_year": "Lapse-risk analysis is unavailable because the data covers only one year; at least two years with a stable donor identifier are required.",
-    "risk.note_lift": "Lift multiples depend on a handful of large donors in the top-K list; read them with the AUC interval, not as a precise factor.",
+    "risk.note_lift": "A list ranked by value picks mostly large donors, and large donors lapse less often than average, so its hit rate can sit below the all-donor rate. Its point is what each lapse costs. Compare with the simple rules in the table before relying on it.",
     "risk.note_insample": "Only one transition is available, so no out-of-sample backtest is possible; scores are in-sample.",
     "risk.note_cap": "Value at risk = P(lapse) × last year's giving, with gifts capped at NT${cap:,.0f}; principal-tier prospects are handled individually.",
     "risk.reason_short_history": "Short giving history ({n} years)",
@@ -237,7 +237,6 @@ M: dict[str, str] = {
     "act.retain_first_time.s3": "Check the share who give again on Donor journey every year.",
     "act.retain_first_time.effect": "If {assumption}, about {extra_donors_if_5_points_more_give_again} more donors stay and ordinary giving next year rises by about {adds}.",
     "act.call_list.title": "Call the donors most likely to stop",
-    "act.call_list.why": "The {donors} donors at the top of the call list have {value_at_stake} at stake. In the model's test, {share_of_the_top_20_flagged_in_the_test_that_really_stopped} of the top 20 it flagged really did stop giving.",
     "act.call_list.why_basic": "The {donors} donors at the top of the call list have {value_at_stake} at stake.",
     "act.call_list.s1": "Open At-risk donors and divide the list between staff by who already knows the donor.",
     "act.call_list.s2": "Phone or write personally this month, starting with donors flagged for a large one-off gift.",

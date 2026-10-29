@@ -69,7 +69,7 @@ M: dict[str, str] = {
 
     # ---------------------------------------------------------------- risk
     "risk.one_year": "無法進行流失風險分析：資料僅涵蓋一個年度。至少需要兩個年度，且捐款人代號須能跨年辨識同一人。",
-    "risk.note_lift": "倍數取決於名單前段少數大額捐款人，請搭配 AUC 區間解讀，不要當作精確倍率。",
+    "risk.note_lift": "依金額排序的名單多為大額捐款人，而大額捐款人流失率低於平均，所以命中率可能低於全體流失率；名單的意義在於每一次流失的金額。請對照表中的簡單規則再使用。",
     "risk.note_insample": "只有一組年度轉換，無法做樣本外回測；分數為樣本內結果。",
     "risk.note_cap": "風險金額 = 流失機率 × 去年捐款額（單筆以 NT${cap:,.0f} 為上限）；主力級潛在捐款人應個別處理。",
     "risk.reason_short_history": "捐款歷史短（{n} 年）",
@@ -232,7 +232,6 @@ M: dict[str, str] = {
     "act.retain_first_time.s3": "每年在捐款人歷程中查看再次捐款的比例。",
     "act.retain_first_time.effect": "如果{assumption}，約多留住 {extra_donors_if_5_points_more_give_again} 位捐款人，明年一般捐款約增加 {adds}。",
     "act.call_list.title": "聯絡最可能停止捐款的人",
-    "act.call_list.why": "名單最上方的 {donors} 位捐款人涉及 {value_at_stake}。在模型的測試中，被標出的前 20 名裡有 {share_of_the_top_20_flagged_in_the_test_that_really_stopped} 確實停止了捐款。",
     "act.call_list.why_basic": "名單最上方的 {donors} 位捐款人涉及 {value_at_stake}。",
     "act.call_list.s1": "開啟流失風險捐款人，依誰與捐款人最熟，將名單分給同仁。",
     "act.call_list.s2": "本月親自致電或寫信，先從被標示為大額一次性捐款的捐款人開始。",

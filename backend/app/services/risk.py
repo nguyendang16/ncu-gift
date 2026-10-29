@@ -16,7 +16,7 @@ from sklearn.preprocessing import StandardScaler
 
 from .. import config, i18n, org
 from ..i18n import t
-from .frame import InsufficientData, active_sets, cash, years_of
+from .frame import InsufficientData, active_sets, cash, wilson, years_of
 
 FEATURES = ["log_total", "n_gifts", "log_max_gift", "recurring", "anonymous", "class_alumni", "class_friends",
             "class_company", "class_org", "last_month", "n_projects", "card", "wire", "tenure"]
@@ -107,17 +107,20 @@ def risk_report(df: pd.DataFrame, ks=(20, 50, 100), cap: float = config.RISK_VAL
                 boots.append(roc_auc_score(yte[i], p[i]))
         val = np.minimum(Xte["total"].to_numpy(), cap)
         order = np.argsort(-(p * val))
-        at_risk = float((val * yte).sum())
+        # simple rules anyone could apply without a model: donors who gave once (smallest gift first), and the biggest donors
+        once = np.argsort(-((Xte["n_gifts"].to_numpy() == 1).astype(float) - 1e-9 * Xte["total"].to_numpy()), kind="stable")
+        biggest = np.argsort(-val, kind="stable")
         prec = []
         for k in ks:
             if k > len(yte):
                 continue
             top = order[:k]
-            captured = float((val[top] * yte[top]).sum())
-            expected = k / len(yte) * at_risk                 # exact expectation of a random pick of k donors
-            prec.append({"k": k, "hits": int(yte[top].sum()), "precision": float(yte[top].mean()),
-                         "value_captured": captured, "random_expected": expected,
-                         "lift_vs_random": captured / expected if expected else None})
+            hits = int(yte[top].sum())
+            lo, hi = wilson(hits, k)
+            prec.append({"k": k, "hits": hits, "precision": hits / k, "ci_low": lo, "ci_high": hi,
+                         "rule_once_precision": float(yte[once[:k]].mean()),
+                         "value_captured": float((val[top] * yte[top]).sum()),
+                         "value_captured_biggest": float((val[biggest[:k]] * yte[biggest[:k]]).sum())})
         metrics = {"auc": auc, "auc_ci_low": float(np.percentile(boots, 2.5)), "auc_ci_high": float(np.percentile(boots, 97.5)),
                    "train": f"{pairs[0][0]}→{pairs[0][1]}", "test": f"{pairs[-1][0]}→{pairs[-1][1]}",
                    "n_train": int(len(ytr)), "n_test": int(len(yte)),

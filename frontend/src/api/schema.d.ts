@@ -453,6 +453,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Plan
+         * @description What it would take to reach an extra amount of ordinary giving next year. The same calculation the AI analyst uses, without the AI.
+         */
+        post: operations["plan_api_plan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/scenario": {
         parameters: {
             query?: never;
@@ -1920,6 +1940,15 @@ export interface components {
             /** Notes */
             notes: string[];
         };
+        /** PlanIn */
+        PlanIn: {
+            /** Dataset Id */
+            dataset_id?: number | null;
+            /** Target Ntd */
+            target_ntd: number;
+            /** Exceptional Threshold */
+            exceptional_threshold?: number | null;
+        };
         /** PrecisionAtK */
         PrecisionAtK: {
             /** K */
@@ -1928,12 +1957,16 @@ export interface components {
             hits: number;
             /** Precision */
             precision: number;
+            /** Ci Low */
+            ci_low: number;
+            /** Ci High */
+            ci_high: number;
+            /** Rule Once Precision */
+            rule_once_precision: number;
             /** Value Captured */
             value_captured: number;
-            /** Random Expected */
-            random_expected: number;
-            /** Lift Vs Random */
-            lift_vs_random: number | null;
+            /** Value Captured Biggest */
+            value_captured_biggest: number;
         };
         /** PreviewOut */
         PreviewOut: {
@@ -3172,6 +3205,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EvalOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    plan_api_plan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

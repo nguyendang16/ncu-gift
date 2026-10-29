@@ -242,7 +242,9 @@ def at_risk_donors(c, a) -> ToolOut:
            "meaning": "value at risk = chance of stopping x last year's giving; gifts are capped so a single huge gift does not dominate",
            "model": ({"auc_out_of_sample": round(m["auc"], 2), "auc_95_interval": [round(m["auc_ci_low"], 2), round(m["auc_ci_high"], 2)],
                       "trained_on": m["train"], "tested_on": m["test"],
-                      "of_top_20_flagged_share_who_really_stopped": _share(m["precision_at_k"][0]["precision"])} if m else None)}
+                      "share_of_all_tested_donors_who_stopped": _share(m["lapse_rate_test"]),
+                      "of_top_20_on_the_value_list_share_who_stopped": _share(m["precision_at_k"][0]["precision"]),
+                      "note": "the value list holds mostly large donors, who stop less often than average; do not present its hit rate as proof the model works"} if m else None)}
     cols = [t("agent.col.donor"), t("agent.col.type"), t("agent.col.gave"), t("agent.col.chance"), t("agent.col.at_stake"), t("agent.col.why")]
     rows = [[d["donor_id"], d["donor_class_label"], i18n_money(d["giving_last_year"]), f"{d['p_lapse'] * 100:.0f}%", i18n_money(d["value_at_risk"]),
              "; ".join(d["reasons"][:2])] for d in donors]
