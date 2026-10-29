@@ -105,12 +105,14 @@ export default function Strategy() {
             <span className="small">{delta >= goal ? t("gp.goal_met", { goal: fmt.compact(goal) }) : t("gp.goal_pct", { pct: Math.max(0, Math.floor((delta / goal) * 100)), goal: fmt.compact(goal) })}</span>
           </div>
         )}
-        <div className="gp-chart"><div className="cap">{t("gp.chart_range")}</div><Chart option={rangeOption(sc, fmt, t)} height={150} label={t("strategy.range_aria")} /></div>
-        <div className="gp-chart">
-          <div className="cap">{t("gp.chart_adds")}</div>
-          {addsParts(sc).length ? <Chart option={addsOption(addsParts(sc), fmt)} height={40 + 46 * addsParts(sc).length} label={t("gp.chart_adds")} /> : <p className="small muted gp-empty">{t("gp.chart_empty")}</p>}
-        </div>
-        <div className="gp-chart"><div className="cap">{t("gp.chart_history")}</div><Chart option={fanOption(sc, fmt, t)} height={220} label={t("strategy.range_aria")} /></div>
+        <div className="gp-chart"><div className="cap">{t("gp.chart_range")}</div><Chart option={rangeOption(sc, fmt, t, goal)} height={170} label={t("strategy.range_aria")} /></div>
+        {addsParts(sc).length > 0 && (
+          <div className="gp-chart">
+            <div className="cap">{t("gp.chart_adds")}</div>
+            <Chart option={addsOption(addsParts(sc), fmt)} height={40 + 46 * addsParts(sc).length} label={t("gp.chart_adds")} />
+          </div>
+        )}
+        <div className="gp-chart"><div className="cap">{t("gp.chart_history")}</div><Chart option={fanOption(sc, fmt, t, goal)} height={240} label={t("strategy.range_aria")} /></div>
         <p className="small muted gp-cap">{t("gp.caption")}</p>
         <div className="gp-btns">
           <button className="btn go" onClick={() => ask(goal > 0 ? t("gp.ask_goal", { goal: fmt.compact(goal) }) : t("gp.ask_plain"))}><Icon name="ai" size={15} />{t("gp.ask")}</button>

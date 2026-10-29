@@ -707,6 +707,7 @@ export const zhTW: Record<BaseKey, string> & Partial<Record<Key, string>> = {
   "gp.if_nothing": "維持現狀",
   "gp.chart_range": "明年：做與不做的差別（可能範圍）",
   "gp.chart_adds": "你的做法增加了什麼",
+  "gp.goal_line": "目標 {amount}",
+  "gp.goal_name": "目標",
   "gp.chart_history": "過去幾年與明年",
-  "gp.chart_empty": "拖動滑桿或按「試試看」，就能看到每一組增加多少。",
 };

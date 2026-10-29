@@ -62,7 +62,7 @@ function WhatIf({ v }: { v: { settings: { r1: number; r2: number; mult: number; 
           <span className="small">{t("ai.wi_goal_pct", { goal: fmt.compact(v.goal), pct: Math.max(0, Math.round((delta / v.goal) * 100)) })}</span>
         </div>
       ) : null}
-      <Chart option={rangeOption(sc, fmt, t)} height={130} label={t("strategy.range_aria")} />
+      <Chart option={rangeOption(sc, fmt, t, v.goal ?? 0)} height={150} label={t("strategy.range_aria")} />
       {addsParts(sc).length > 0 && <Chart option={addsOption(addsParts(sc), fmt)} height={36 + 42 * addsParts(sc).length} label={t("gp.chart_adds")} />}
       <div className="wi-sliders">
         <Slider label={t("strategy.l_first")} value={s.r1} min={0} max={20} step={0.5} onChange={(r1) => setS({ ...s, r1 })} text={t("strategy.pp", { n: `+${s.r1}` })} />

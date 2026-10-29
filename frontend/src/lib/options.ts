@@ -208,7 +208,7 @@ export function bubbleOption(points: RiskPoint[], fmt: Fmt, t: T) {
 }
 
 /** Ordinary giving so far, and where it could go next year (a range, never a single promised number). */
-export function fanOption(s: Scenario, fmt: Fmt, t: T) {
+export function fanOption(s: Scenario, fmt: Fmt, t: T, goal = 0) {
   const hist = s.history.map((h) => h.ordinary);
   const years = [...s.history.map((h) => String(h.year)), String(s.projection_year)];
   const pad = (v: number | null[]) => v;
@@ -221,15 +221,19 @@ export function fanOption(s: Scenario, fmt: Fmt, t: T) {
   const b = baseOption();
   void pad;
   return {
-    ...b, legend: { ...b.legend, data: [t("fan.history"), t("fan.baseline"), t("fan.scenario")] }, tooltip: { ...b.tooltip, trigger: "axis" as const, axisPointer: { type: "line" as const }, ...tip(fmt) },
+    ...b, grid: { ...b.grid, right: 40 }, legend: { ...b.legend, data: [t("fan.history"), t("fan.baseline"), t("fan.scenario")] }, tooltip: { ...b.tooltip, trigger: "axis" as const, axisPointer: { type: "line" as const }, hideDelay: 1200, ...tip(fmt) },
     xAxis: { type: "category" as const, data: years, boundaryGap: false, axisLabel: axisText },
     // start the axis near the data: from zero the plausible range would be a flat line
     yAxis: { ...yMoney(fmt.axisMoney), min: Math.floor(Math.min(...hist, s.baseline.low, s.scenario.low) * 0.85 / 1e6) * 1e6 },
     series: [
       ...band("b", "sb", C.slate, s.baseline.low, s.baseline.high), ...band("s", "ss", C.regular, s.scenario.low, s.scenario.high),
-      { name: t("fan.history"), type: "line" as const, data: [...hist, null], symbol: "circle", symbolSize: 9, lineStyle: { width: 3, color: C.indigo }, itemStyle: { color: C.indigo } },
+      { name: t("fan.history"), type: "line" as const, data: [...hist, null], symbol: "circle", symbolSize: 9, lineStyle: { width: 3, color: C.indigo }, itemStyle: { color: C.indigo },
+        label: { show: true, position: "top" as const, color: C.muted, fontSize: 11, formatter: (p: { value: number | null }) => (p.value == null ? "" : fmt.compact(p.value)) } },
       { name: t("fan.baseline"), type: "line" as const, data: [...gap, last, s.baseline.expected], symbol: "circle", symbolSize: 9, lineStyle: { width: 3, color: C.slate, type: "dashed" as const }, itemStyle: { color: C.slate } },
-      { name: t("fan.scenario"), type: "line" as const, data: [...gap, last, s.scenario.expected], symbol: "circle", symbolSize: 11, lineStyle: { width: 3.5, color: C.regular }, itemStyle: { color: C.regular } },
+      { name: t("fan.scenario"), type: "line" as const, data: [...gap, last, s.scenario.expected], symbol: "circle", symbolSize: 11, lineStyle: { width: 3.5, color: C.regular }, itemStyle: { color: C.regular },
+        label: { show: true, position: (goal > 0 ? "bottom" : "top") as "top" | "bottom", color: C.ink, fontWeight: 700, fontSize: 12, formatter: (p: { dataIndex: number; value: number | null }) => (p.dataIndex === years.length - 1 && p.value != null ? fmt.compact(p.value) : "") } },
+      ...(goal > 0 ? [{ name: t("gp.goal_name"), type: "scatter" as const, data: [...gap, null, s.baseline.expected + goal].map((v) => v ?? "-"), symbol: "diamond", symbolSize: 13, itemStyle: { color: C.rose },
+        label: { show: true, position: "top" as const, color: C.rose, fontWeight: 700, fontSize: 12, formatter: (p: { value: number | string }) => (typeof p.value === "number" ? t("gp.goal_line", { amount: fmt.compact(p.value) }) : "") } }] : []),
     ],
   };
 }
