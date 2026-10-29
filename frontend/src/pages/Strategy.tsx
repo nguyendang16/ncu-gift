@@ -7,6 +7,7 @@ import { Chart } from "../components/Chart";
 import { Icon, Notice, PageHeader, Q, useDebounced, type IconName } from "../components/ui";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n";
+import { fanOption } from "../lib/options";
 import { addsOption, addsParts, rangeOption } from "../lib/planCharts";
 
 type S = { r1: number; r2: number; mult: number; rec: number; gift: number };
@@ -109,6 +110,7 @@ export default function Strategy() {
           <div className="cap">{t("gp.chart_adds")}</div>
           {addsParts(sc).length ? <Chart option={addsOption(addsParts(sc), fmt)} height={40 + 46 * addsParts(sc).length} label={t("gp.chart_adds")} /> : <p className="small muted gp-empty">{t("gp.chart_empty")}</p>}
         </div>
+        <div className="gp-chart"><div className="cap">{t("gp.chart_history")}</div><Chart option={fanOption(sc, fmt, t)} height={220} label={t("strategy.range_aria")} /></div>
         <p className="small muted gp-cap">{t("gp.caption")}</p>
         <div className="gp-btns">
           <button className="btn go" onClick={() => ask(goal > 0 ? t("gp.ask_goal", { goal: fmt.compact(goal) }) : t("gp.ask_plain"))}><Icon name="ai" size={15} />{t("gp.ask")}</button>

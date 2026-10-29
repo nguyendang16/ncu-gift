@@ -711,6 +711,7 @@ export const en = {
   "gp.if_nothing": "If nothing changes",
   "gp.chart_range": "Next year, with and without your changes (likely range)",
   "gp.chart_adds": "What your changes add",
+  "gp.chart_history": "Past years and next year",
   "gp.chart_empty": "Move a slider or press Try this to see what each group adds.",
 } as const;
 
