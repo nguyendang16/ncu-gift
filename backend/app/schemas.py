@@ -242,6 +242,12 @@ class ApplyRefOut(BaseModel):
     review_items: int
 
 
+class PlanIn(BaseModel):
+    dataset_id: int | None = None
+    target_ntd: float
+    exceptional_threshold: float | None = None
+
+
 class AcceptIn(BaseModel):
     dataset_id: int | None = None
     min_confidence: float = 0.5

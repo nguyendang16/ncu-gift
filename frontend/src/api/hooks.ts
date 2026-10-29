@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLang } from "../i18n";
 import { api } from "./client";
-import type { ConversationOut, ConversationRow, AgentOut, AcceptOut, ApplyRefOut, RefStatus, AiCallDetail, AiCallRow, AiSettingsIn, AiStatus, AiTest, AiTurn, AskOut, Bridge, Brief, Capability, ClassifyOut, Concentration, Highlight, InsightsOut, MapOut, Season, TreeNode, ConfirmOut, Dataset, Journey, Leak, MatchEval, Meta, Overview, Preview, Rank, ReviewItem, Risk, Roll, Scenario, ScenarioIn, Solicited, Target, TrendRow } from "./types";
+import type { Plan, ConversationOut, ConversationRow, AgentOut, AcceptOut, ApplyRefOut, RefStatus, AiCallDetail, AiCallRow, AiSettingsIn, AiStatus, AiTest, AiTurn, AskOut, Bridge, Brief, Capability, ClassifyOut, Concentration, Highlight, InsightsOut, MapOut, Season, TreeNode, ConfirmOut, Dataset, Journey, Leak, MatchEval, Meta, Overview, Preview, Rank, ReviewItem, Risk, Roll, Scenario, ScenarioIn, Solicited, Target, TrendRow } from "./types";
 
 type ClassCompare = Overview["class_compare"];
 
@@ -60,6 +60,12 @@ export function useMatchEval(ds?: number) {
 export function useScenario(body: ScenarioIn) {
   const lang = useLang();
   return useQuery({ queryKey: ["scenario", lang, body], enabled: on(body.dataset_id ?? undefined), retry: false, placeholderData: keepPreviousData, queryFn: () => api<Scenario>("/api/scenario", { body }) });
+}
+/** What it would take to reach an extra amount next year. No AI involved: the same arithmetic as the scenario. */
+export function usePlan(ds: number | undefined, target: number | undefined, exceptional: number) {
+  const lang = useLang();
+  return useQuery({ queryKey: ["plan", lang, ds, target, exceptional], enabled: on(ds) && !!target && target > 0, retry: false, placeholderData: keepPreviousData,
+    queryFn: () => api<Plan>("/api/plan", { body: { dataset_id: ds, target_ntd: target, exceptional_threshold: exceptional } }) });
 }
 export function useRoll(ds: number | undefined, year?: number) {
   const lang = useLang();

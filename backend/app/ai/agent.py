@@ -405,7 +405,8 @@ def plan_to_raise(c, a) -> ToolOut:
     if gifts:
         rows.append([t("agent.plan.gifts"), t("agent.plan.gifts_need", n=gifts["extra_gifts_needed_at_median"], gift=ins._ntd_compact(med)), f"≈ {gifts['extra_gifts_needed_at_median']}", t("agent.plan.yes")])
     # concrete next actions, from the system's own playbook (evidence and steps written from the data, not generic advice)
-    cands = _safe_list(act_mod.candidates, c.df, c.years[-1], c.exceptional, c.large)
+    include_actions = a.get("include_actions", True)         # the Goal planner page does not need them
+    cands = _safe_list(act_mod.candidates, c.df, c.years[-1], c.exceptional, c.large) if include_actions else []
     picks = [act_mod.playbook(x) for x in act_mod.top(cands, 4)]
     out["concrete_next_actions"] = [{"title": p["title"], "why": p["why"], "steps": p["steps"], "expected_effect": p["expected_effect"], "where_in_the_system": guide.title(p["page"])} for p in picks]
     for p in picks:
