@@ -203,8 +203,6 @@ export default function Overview() {
                     <div>{t("kpi.million_sub", { count: k.million_projects, amount: fmt.compact(k.million_amount) })}</div>
                     {k.top_project_share != null && <div>{t("kpi.million_top", { pct: fmt.pct(k.top_project_share, 0) })}</div>}
                   </>} />
-                <HeroStat tone="na" label={t("kpi.acct_income")} value={t("ui.na")} detail={t("kpi.acct_missing")} />
-                <HeroStat tone="na" label={t("kpi.acct_balance")} value={t("ui.na")} detail={t("kpi.acct_missing")} />
                 <HeroStat label={t("kpi.donors")} value={fmt.int(k.donors)} detail={t("kpi.donors_sub", { records: fmt.int(k.records), inkind: k.in_kind_records })} />
               </div>
             </div>

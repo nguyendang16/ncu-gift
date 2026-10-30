@@ -56,8 +56,6 @@ export function buildOverviewExport(input: {
     line(t("kpi.repeat_hero"), k.repeat_selected == null ? t("ui.na") : `${fmt.int(k.repeat_selected)}${k.repeat_delta == null ? "" : ` (${k.repeat_delta >= 0 ? "+" : ""}${k.repeat_delta})`}`),
     line(t("kpi.card"), k.card_gifts == null ? t("kpi.card_missing") : String(k.card_gifts), k.card_yoy_pct, vs),
     line(t("kpi.million"), `${fmt.pct(k.million_share, 0)} · ${t("kpi.million_sub", { count: k.million_projects, amount: fmt.ntd(k.million_amount) })}`),
-    line(t("kpi.acct_income"), t("kpi.acct_missing")),
-    line(t("kpi.acct_balance"), t("kpi.acct_missing")),
   ];
 
   if (highlights.length) {
