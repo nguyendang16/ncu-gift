@@ -40,13 +40,14 @@ export function VerifyBadge({ v }: { v: NumberCheck }) {
 }
 
 /** The plain-language summary on the Overview. Costs a fraction of a cent; runs only when asked. */
-export function AiSummary({ year }: { year?: number }) {
+export function AiSummary({ year, years }: { year?: number; years?: number[] }) {
   const { datasetId, settings } = useApp();
   const { t } = useI18n();
   const { ready } = useAiReady();
   const { ask } = useAiDock();
   const run = useInsights();
   const r = run.data;
+  const span = years && years.length > 1 ? years : undefined;
   const labels: Record<string, string> = {
     compare: t("ai.obs.compare"),
     base: t("ai.obs.base"),
@@ -54,8 +55,8 @@ export function AiSummary({ year }: { year?: number }) {
     accounts: t("ai.obs.accounts"),
   };
   return (
-    <Card ai icon="ai" title={t("ai.summary_title")} sub={t("ai.summary_sub")}
-      right={<button className="btn ai" disabled={!ready || run.isPending} onClick={() => run.mutate({ dataset_id: datasetId, year, exceptional_threshold: settings.exceptional, large_threshold: settings.large })}>
+    <Card ai icon="ai" title={t("ai.summary_title")} sub={span ? t("ai.summary_sub_years", { years: span.join(" · ") }) : t("ai.summary_sub")}
+      right={<button className="btn ai" disabled={!ready || run.isPending} onClick={() => run.mutate({ dataset_id: datasetId, year, years: span, exceptional_threshold: settings.exceptional, large_threshold: settings.large })}>
         <Icon name="ai" size={17} />{run.isPending ? t("ai.thinking") : r ? t("ai.summary_again") : t("ai.summary_button")}</button>}>
       {!ready && <AiOffHint />}
       <DemoNotice />

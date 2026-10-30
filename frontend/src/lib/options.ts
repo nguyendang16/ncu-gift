@@ -7,6 +7,25 @@ import { C, PALETTE, axisText, baseOption, yMoney } from "./chart";
 export type T = (key: Key, params?: Record<string, string | number>) => string;
 const tip = (fmt: Fmt) => ({ valueFormatter: (v: number) => fmt.ntd(v) });
 
+/** One value per bar, written upward so neighbouring years do not sit on the same line. */
+function columnLabel(format: (v: number) => string) {
+  return {
+    show: true, position: "top" as const, rotate: 90, align: "left" as const, verticalAlign: "middle" as const,
+    distance: 4, color: C.ink, fontSize: 11,
+    formatter: (p: { value: number | null }) => (p.value ? format(p.value) : ""),
+  };
+}
+
+/** Round the axis above the tallest bar so its upward label stays inside, on a clean tick. */
+function withHeadroom<T extends object>(axis: T, peak: number) {
+  if (peak <= 0) return axis;
+  const target = peak * 1.28;
+  const exp = Math.floor(Math.log10(target));
+  const frac = target / 10 ** exp;
+  const step = [1, 2, 2.5, 4, 5, 10].find((s) => s >= frac) ?? 10;
+  return { ...axis, max: step * 10 ** exp };
+}
+
 /** Ordinary and exceptional giving stacked, with the number of donors as a line on its own axis. */
 export function comboOption(rows: TrendRow[], cuts: { low: number; high: number }, fmt: Fmt, t: T) {
   const b = baseOption();
@@ -14,12 +33,14 @@ export function comboOption(rows: TrendRow[], cuts: { low: number; high: number 
   const mid = t("series.band_mid", { low: fmt.compact(cuts.low), high: fmt.compact(cuts.high) });
   const over = t("series.band_over", { amount: fmt.compact(cuts.high) });
   const share = (value: number, total: number) => (total > 0 ? Math.round(value / total * 100) : 0);
+  const peak = Math.max(...rows.map((r) => r.total), 1);
   const inside = (color: string) => ({
     show: true, color, fontSize: 11, fontWeight: 650,
     formatter: (p: { dataIndex: number; value: number }) => {
       const total = rows[p.dataIndex]?.total ?? 0;
-      if (!p.value || !total || p.value / total < 0.08) return "";
-      return `${fmt.compact(p.value)}\n${share(p.value, total)}%`;
+      const room = p.value / peak;
+      if (!p.value || !total || room < 0.14) return "";
+      return room < 0.28 ? fmt.axisMoney(p.value) : `${fmt.axisMoney(p.value)}\n${share(p.value, total)}%`;
     },
   });
   const band = (name: string, key: "band_under" | "band_mid" | "band_over", color: string, label: string, radius: number[]) => ({
@@ -33,14 +54,14 @@ export function comboOption(rows: TrendRow[], cuts: { low: number; high: number 
     grid: { left: 6, right: 48, top: 28, bottom: 52, containLabel: true },
     legend: { bottom: 0, left: "center", icon: "roundRect" as const, itemWidth: 12, itemHeight: 12, textStyle: { color: C.muted, fontSize: 12 }, data: [under, mid, over, t("series.donors")] },
     xAxis: { type: "category" as const, data: rows.map((r) => String(r.year)), axisLabel: axisText },
-    yAxis: [yMoney(fmt.axisMoney), { type: "value" as const, axisLabel: axisText, splitLine: { show: false }, name: "", min: 0 }],
+    yAxis: [withHeadroom(yMoney(fmt.axisMoney), peak), { type: "value" as const, axisLabel: axisText, splitLine: { show: false }, name: "", min: 0 }],
     series: [
       band(under, "band_under", "#4c1d95", "#fff", [0, 0, 0, 0]),
       band(mid, "band_mid", "#9333ea", "#fff", [0, 0, 0, 0]),
       band(over, "band_over", "#d4a017", "#3f2d00", [6, 6, 0, 0]),
       { name: "total", type: "bar" as const, stack: "t", data: rows.map(() => 0), tooltip: { show: false },
         itemStyle: { color: "transparent" }, emphasis: { disabled: true },
-        label: { show: true, position: "top" as const, color: C.ink, fontWeight: 650, fontSize: 12, formatter: (p: { dataIndex: number }) => fmt.compact(rows[p.dataIndex]?.total ?? 0) } },
+        label: { show: true, position: "top" as const, distance: 6, color: C.ink, fontWeight: 650, fontSize: 12, formatter: (p: { dataIndex: number }) => fmt.axisMoney(rows[p.dataIndex]?.total ?? 0) } },
       { name: t("series.donors"), type: "line" as const, yAxisIndex: 1, data: rows.map((r) => r.donors), symbol: "circle", symbolSize: 9, lineStyle: { width: 3, color: C.indigo }, itemStyle: { color: C.indigo },
         tooltip: { valueFormatter: (v: number) => fmt.int(v) } },
     ],
@@ -87,17 +108,19 @@ export function kpiCompareOption(labels: string[], series: { year: number; value
   const b = baseOption();
   const colors = [C.violet, C.indigo, C.regular, C.sky, C.exceptional];
   const format = (v: number) => (money ? fmt.axisMoney(v) : fmt.int(v));
+  const peak = Math.max(0, ...series.flatMap((row) => row.values.map((v) => v ?? 0)));
   return {
     ...b,
     tooltip: { ...b.tooltip, valueFormatter: (v: number) => (v == null ? "–" : money ? fmt.ntd(v) : fmt.int(v)) },
-    grid: { left: 8, right: 12, top: 24, bottom: 36, containLabel: true },
+    grid: { left: 8, right: 16, top: 16, bottom: 36, containLabel: true },
     legend: { bottom: 0, left: "center", icon: "roundRect" as const, itemWidth: 12, itemHeight: 12, textStyle: { color: C.muted, fontSize: 12 } },
-    xAxis: { type: "category" as const, data: labels, axisLabel: { ...axisText, interval: 0 } },
-    yAxis: money ? yMoney(fmt.axisMoney) : { type: "value" as const, min: 0, axisLabel: { ...axisText, formatter: (v: number) => fmt.int(v) }, splitLine: { lineStyle: { color: C.line, type: "dashed" as const } } },
+    xAxis: { type: "category" as const, data: labels, axisLabel: { ...axisText, interval: 0, hideOverlap: true } },
+    yAxis: withHeadroom(money ? yMoney(fmt.axisMoney) : { type: "value" as const, min: 0, axisLabel: { ...axisText, hideOverlap: true, formatter: (v: number) => fmt.int(v) }, splitLine: { lineStyle: { color: C.line, type: "dashed" as const } } }, peak),
     series: series.map((row, index) => ({
-      name: String(row.year), type: "bar" as const, data: row.values, barMaxWidth: 36, barGap: "12%",
+      name: String(row.year), type: "bar" as const, data: row.values, barMaxWidth: 22, barGap: "30%",
       itemStyle: { color: colors[index % colors.length], borderRadius: [4, 4, 0, 0] },
-      label: { show: true, position: "top" as const, color: C.ink, fontSize: 11, formatter: (p: { value: number | null }) => (p.value ? format(p.value) : "") },
+      label: columnLabel((v) => (v ? format(v) : "")),
+      labelLayout: { hideOverlap: true },
     })),
   };
 }
@@ -105,17 +128,19 @@ export function kpiCompareOption(labels: string[], series: { year: number; value
 export function classCompareOption(compare: { labels: string[]; series: { year: number; amounts: number[] }[] }, fmt: Fmt) {
   const b = baseOption();
   const colors = [C.violet, C.indigo, C.regular, C.sky, C.exceptional];
+  const peak = Math.max(0, ...compare.series.flatMap((row) => row.amounts));
   return {
     ...b,
     tooltip: { ...b.tooltip, ...tip(fmt) },
-    grid: { left: 8, right: 12, top: 24, bottom: 36, containLabel: true },
+    grid: { left: 8, right: 16, top: 16, bottom: 36, containLabel: true },
     legend: { bottom: 0, left: "center", icon: "roundRect" as const, itemWidth: 12, itemHeight: 12, textStyle: { color: C.muted, fontSize: 12 } },
-    xAxis: { type: "category" as const, data: compare.labels, axisLabel: { ...axisText, interval: 0 } },
-    yAxis: yMoney(fmt.axisMoney),
+    xAxis: { type: "category" as const, data: compare.labels, axisLabel: { ...axisText, interval: 0, width: 72, overflow: "break" as const, hideOverlap: true } },
+    yAxis: withHeadroom(yMoney(fmt.axisMoney), peak),
     series: compare.series.map((row, index) => ({
-      name: String(row.year), type: "bar" as const, data: row.amounts, barMaxWidth: 28, barGap: "12%",
+      name: String(row.year), type: "bar" as const, data: row.amounts, barMaxWidth: 22, barGap: "30%",
       itemStyle: { color: colors[index % colors.length], borderRadius: [4, 4, 0, 0] },
-      label: { show: true, position: "top" as const, color: C.ink, fontSize: 11, formatter: (p: { value: number }) => (p.value ? fmt.axisMoney(p.value) : "") },
+      label: columnLabel((v) => (v ? fmt.axisMoney(v) : "")),
+      labelLayout: { hideOverlap: true },
     })),
   };
 }

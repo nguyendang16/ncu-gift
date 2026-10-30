@@ -47,6 +47,39 @@ function toneOf(delta: number | null | undefined): "" | "up" | "down" {
   return delta > 0 ? "up" : "down";
 }
 
+type OverviewView = "all" | "pick" | "one";
+
+function chosenYears(view: OverviewView, years: number[], picked: number[], year: number) {
+  if (view === "one") return [year];
+  if (view === "all") return years;
+  const keep = years.filter((value) => picked.includes(value));
+  return keep.length ? keep : years;
+}
+
+function yearChange(start: number, end: number): number | null {
+  return start ? ((end - start) / start) * 100 : null;
+}
+
+function yearsTouch(rows: { year: number }[]) {
+  return rows.every((row, index) => index === 0 || row.year === rows[index - 1].year + 1);
+}
+
+function spanLead(t: (key: Key, params?: Record<string, string | number>) => string, fmt: { compact: (n: number) => string; signedPct: (n: number | null | undefined) => string }, view: OverviewView, rows: { year: number; total: number; regular_total: number }[]) {
+  if (!rows.length) return t(view === "all" ? "sec.compare_all" : "sec.compare_pick");
+  const first = rows[0];
+  const last = rows[rows.length - 1];
+  const figures = {
+    total_start: fmt.compact(first.total), total_end: fmt.compact(last.total), total_change: fmt.signedPct(yearChange(first.total, last.total)),
+    ordinary_start: fmt.compact(first.regular_total), ordinary_end: fmt.compact(last.regular_total), ordinary_change: fmt.signedPct(yearChange(first.regular_total, last.regular_total)),
+  };
+  const sentence = rows.length < 2
+    ? t("hero.span_one", { year: last.year, total: fmt.compact(last.total), ordinary: fmt.compact(last.regular_total) })
+    : yearsTouch(rows)
+      ? t("hero.span_sentence", { start_year: first.year, end_year: last.year, ...figures })
+      : t("hero.span_picked", { years: rows.map((row) => row.year).join(" · "), ...figures });
+  return `${t(view === "all" ? "sec.compare_all" : "sec.compare_pick")}\n${sentence.replace(/<\/?b>/g, "")}`;
+}
+
 function HeroStat({ label, value, detail, tone }: { label: string; value: ReactNode; detail?: ReactNode; tone?: "" | "up" | "down" | "na" }) {
   return (
     <div className={`hero-stat ${tone ?? ""}`}>
@@ -63,7 +96,8 @@ export default function Overview() {
   const loc = useLocation();
   const signed = signedWith(fmt.compact);
   const [year, setYear] = useState<number | undefined>();
-  const [compareYear, setCompareYear] = useState<number | undefined>();
+  const [view, setView] = useState<OverviewView>(() => (window.location.hash === "#concentration" ? "one" : "all"));
+  const [picked, setPicked] = useState<number[]>([]);
   const [scope, setScope] = useState<"all" | "regular">("all");
   const [log, setLog] = useState(false);
   const [mode, setMode] = useState<"ordinary" | "all">("ordinary");
@@ -88,18 +122,43 @@ export default function Overview() {
   if (rangeOk) classWindow.current = { min: minCut, max: maxCut };
   const trend = useTrend(datasetId, settings.exceptional, bandCuts.current);
   const classes = useClassCompare(datasetId, { scope, exceptional: settings.exceptional, min: classWindow.current.min, max: classWindow.current.max });
-  const ov = useOverview(datasetId, { year, compareYear, scope, exceptional: settings.exceptional, large: settings.large, returnDef: settings.returnDef });
+  const ov = useOverview(datasetId, { year, scope, exceptional: settings.exceptional, large: settings.large, returnDef: settings.returnDef });
   const y = ov.data?.year;
-  const hl = useHighlights(datasetId, y, settings.exceptional, compareYear);
-  const bridge = useBridge(datasetId, y, settings.exceptional, compareYear);
+  const yearList = ov.data?.years;
+  const hl = useHighlights(datasetId, y, settings.exceptional);
+  const bridge = useBridge(datasetId, y, settings.exceptional);
   const conc = useConcentration(datasetId, y, settings.exceptional);
   const season = useSeasonality(datasetId, settings.exceptional);
   const tree = usePurposeTree(datasetId, y, settings.exceptional);
 
   // links such as "/#concentration" scroll to their section once the page has drawn
   useEffect(() => {
+    if (loc.hash === "#concentration") setView("one");
+  }, [loc.hash]);
+
+  useEffect(() => {
+    if (!yearList?.length) return;
+    setPicked((cur) => {
+      const keep = cur.filter((value) => yearList.includes(value));
+      return keep.length ? keep : yearList;
+    });
+  }, [yearList]);
+
+  useEffect(() => {
     if (loc.hash && ov.data) setTimeout(() => document.querySelector(loc.hash)?.scrollIntoView({ behavior: "smooth", block: "start" }), 250);
-  }, [loc.hash, ov.data]);
+  }, [loc.hash, ov.data, view]);
+
+  function toggleYear(value: number) {
+    const years = yearList ?? [];
+    setPicked((cur) => {
+      const base = cur.length ? cur : years;
+      if (base.includes(value)) {
+        const next = base.filter((item) => item !== value);
+        return next.length ? next : base;
+      }
+      return [...base, value].sort((a, b) => a - b);
+    });
+  }
 
   const chartsReady = [trend, bridge, tree, season, conc, hl].every((q) => q.isFetched);
 
@@ -119,13 +178,22 @@ export default function Overview() {
       lastCount = count;
     }
     try {
+      const years = chosenYears(view, overview.years, picked, overview.year);
+      const yearSet = new Set(years);
+      const classSource = classes.data ?? overview.class_compare;
       const built = buildOverviewExport({
-        t, fmt, overview, trend: trend.data ?? [], highlights: hl.data ?? [],
-        bridge: bridge.data, concentration: conc.data, tree: tree.data,
+        t, fmt,
+        overview: view === "one" ? overview : { ...overview, kpi_compare: overview.kpi_by_year.filter((row) => yearSet.has(row.year)) },
+        trend: view === "one" ? (trend.data ?? []) : (trend.data ?? []).filter((row) => yearSet.has(row.year)),
+        highlights: view === "one" ? (hl.data ?? []) : [],
+        bridge: view === "one" ? bridge.data : undefined,
+        concentration: view === "one" ? conc.data : undefined,
+        tree: view === "one" ? tree.data : undefined,
         returnLabel: t(`return.${settings.returnDef}` as Key),
         bands: bandCuts.current,
-        classCompare: classes.data,
+        classCompare: view === "one" ? classes.data : { ...classSource, series: classSource.series.filter((row) => yearSet.has(row.year)) },
         exceptional: settings.exceptional, large: settings.large,
+        compareLead: view === "one" ? undefined : spanLead(t, fmt, view, overview.kpi_by_year.filter((row) => yearSet.has(row.year))),
       });
       const folder = `ncu-gift-${overview.year}`;
       const zip = zipStore([
@@ -144,20 +212,30 @@ export default function Overview() {
   return (
     <>
       <PageHeader title={t("overview.title")} question={t("q.overview")} desc={t("overview.desc")}>
-        <label className="field">{t("overview.year")}
-          <select value={y ?? ""} onChange={(e) => {
-            const next = Number(e.target.value);
-            setYear(next);
-            setCompareYear((current) => (current === next ? undefined : current));
-          }}>
-            {(ov.data?.years ?? []).map((v) => <option key={v}>{v}</option>)}
-          </select>
-        </label>
-        <label className="field">{t("overview.compare")}
-          <select value={compareYear && compareYear !== y ? compareYear : (ov.data?.prev_year ?? "")} onChange={(e) => setCompareYear(Number(e.target.value))}>
-            {(ov.data?.years ?? []).filter((v) => v !== y).map((v) => <option key={v} value={v}>{v}</option>)}
-          </select>
-        </label>
+        <div className="field">{t("overview.view")}
+          <Seg label={t("overview.view")} value={view} onChange={setView} options={[
+            { v: "all", l: t("overview.view_all") },
+            { v: "pick", l: t("overview.view_pick") },
+            { v: "one", l: t("overview.view_one") },
+          ]} />
+        </div>
+        {view === "one" && (
+          <label className="field">{t("overview.year")}
+            <select value={y ?? ""} onChange={(e) => setYear(Number(e.target.value))}>
+              {(ov.data?.years ?? []).map((v) => <option key={v}>{v}</option>)}
+            </select>
+          </label>
+        )}
+        {view === "pick" && (
+          <div className="field">{t("overview.pick_years")}
+            <div className="year-picks" role="group" aria-label={t("overview.pick_years")}>
+              {(ov.data?.years ?? []).map((v) => (
+                <button key={v} type="button" aria-pressed={picked.length === 0 || picked.includes(v)} onClick={() => toggleYear(v)}>{v}</button>
+              ))}
+            </div>
+            {picked.length === 1 && <p className="muted small">{t("overview.pick_one")}</p>}
+          </div>
+        )}
         <div className="field">{t("overview.scope")}
           <Seg label={t("overview.scope")} value={scope} onChange={setScope} options={[{ v: "all", l: t("scope.all") }, { v: "regular", l: t("scope.regular") }]} />
         </div>
@@ -167,12 +245,16 @@ export default function Overview() {
       </PageHeader>
       <Q q={ov}>{(o) => {
         const k = o.kpis;
+        const comparing = view !== "one";
+        const shown = chosenYears(view, o.years, picked, o.year);
+        const shownSet = new Set(shown);
+        const kpiRows = o.kpi_by_year.filter((row) => shownSet.has(row.year));
         const signedCount = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${fmt.int(Math.abs(n))}`;
         const ratioText = (n: number | null) => (n == null ? "" : String(Math.round(n * 10) / 10));
         const avgText = (n: number | null) => (n == null ? "" : String(Math.round(n * 10) / 10));
         return (
           <>
-            <div className="hero rise">
+            {!comparing && <div className="hero rise">
               <div className="eyebrow">{t("hero.eyebrow", { year: o.year })}</div>
               <p className="headline">{o.prev_year != null && k.regular_yoy_pct != null
                 ? tx("hero.sentence", { year: o.year, compare: o.prev_year, total: fmt.compact(k.total), ordinary: fmt.compact(k.regular_total), change: fmt.signedPct(k.regular_yoy_pct) })
@@ -205,11 +287,11 @@ export default function Overview() {
                   </>} />
                 <HeroStat label={t("kpi.donors")} value={fmt.int(k.donors)} detail={t("kpi.donors_sub", { records: fmt.int(k.records), inkind: k.in_kind_records })} />
               </div>
-            </div>
+            </div>}
 
-            <div style={{ marginBottom: 18 }}><AiSummary year={o.year} /></div>
+            {!comparing && <div style={{ marginBottom: 18 }}><AiSummary year={o.year} /></div>}
 
-            <Q q={hl}>{(cards) => cards.length > 0 && (
+            {!comparing && <Q q={hl}>{(cards) => cards.length > 0 && (
               <Section title={t("sec.next")} desc={t("sec.next_desc")}>
                 <div className="hl-grid">
                   {cards.map((c) => (
@@ -220,24 +302,62 @@ export default function Overview() {
                   ))}
                 </div>
               </Section>
-            )}</Q>
+            )}</Q>}
 
-            <Section id="numbers" title={t("sec.numbers")} desc={t("sec.numbers_desc")}>
+            {comparing && kpiRows.length > 0 && (() => {
+              const first = kpiRows[0];
+              const last = kpiRows[kpiRows.length - 1];
+              const totalChange = yearChange(first.total, last.total);
+              const ordinaryChange = yearChange(first.regular_total, last.regular_total);
+              const several = kpiRows.length > 1;
+              return (
+                <div className="hero rise">
+                  <div className="eyebrow">{t("hero.span_eyebrow")}</div>
+                  <p className="headline">{!several
+                    ? tx("hero.span_one", { year: last.year, total: fmt.compact(last.total), ordinary: fmt.compact(last.regular_total) })
+                    : yearsTouch(kpiRows)
+                      ? tx("hero.span_sentence", {
+                        start_year: first.year, end_year: last.year,
+                        total_start: fmt.compact(first.total), total_end: fmt.compact(last.total), total_change: fmt.signedPct(totalChange),
+                        ordinary_start: fmt.compact(first.regular_total), ordinary_end: fmt.compact(last.regular_total), ordinary_change: fmt.signedPct(ordinaryChange),
+                      })
+                      : tx("hero.span_picked", {
+                        years: kpiRows.map((row) => row.year).join(" · "),
+                        total_start: fmt.compact(first.total), total_end: fmt.compact(last.total), total_change: fmt.signedPct(totalChange),
+                        ordinary_start: fmt.compact(first.regular_total), ordinary_end: fmt.compact(last.regular_total), ordinary_change: fmt.signedPct(ordinaryChange),
+                      })}</p>
+                  <div className="hero-stats">
+                    <HeroStat tone={toneOf(totalChange)} label={t("kpi.total", { year: last.year })} value={fmt.compact(last.total)}
+                      detail={several ? t("kpi.span_from", { year: first.year, amount: fmt.compact(first.total), change: fmt.signedPct(totalChange) }) : undefined} />
+                    <HeroStat tone={toneOf(ordinaryChange)} label={t("kpi.ordinary_hero")}
+                      value={several && ordinaryChange != null ? fmt.signedPct(ordinaryChange) : fmt.compact(last.regular_total)}
+                      detail={several ? `${fmt.compact(first.regular_total)} → ${fmt.compact(last.regular_total)}` : fmt.compact(last.regular_total)} />
+                    <HeroStat tone={several ? toneOf(last.donors - first.donors) : ""} label={t("kpi.donors")} value={fmt.int(last.donors)}
+                      detail={several ? t("kpi.span_people", { year: first.year, count: fmt.int(first.donors), delta: signedCount(last.donors - first.donors) }) : t("kpi.donors_sub", { records: fmt.int(last.records), inkind: last.in_kind_records })} />
+                    <HeroStat label={t("overview.pick_years")} value={kpiRows.map((row) => row.year).join(" · ")} />
+                  </div>
+                </div>
+              );
+            })()}
+
+            {comparing && <div style={{ marginBottom: 18 }}><AiSummary key={shown.join("-")} year={shown[shown.length - 1]} years={shown.length > 1 ? shown : undefined} /></div>}
+
+            {comparing && <Section id="numbers" title={t(view === "all" ? "sec.compare_all" : "sec.compare_pick")} desc={t(view === "all" ? "sec.compare_all_desc" : "sec.compare_pick_desc")}>
               {(() => {
                 const moneyLabels = [t("kpi.total_axis"), t("kpi.ordinary"), t("kpi.exceptional"), t("kpi.large_amount"), t("kpi.card_amount")];
                 const countLabels = [t("kpi.donors"), t("kpi.repeat"), t("kpi.large_count"), t("kpi.exceptional_n"), t("kpi.card")];
-                const moneySeries = o.kpi_compare.map((row) => ({ year: row.year, values: [row.total, row.regular_total, row.exceptional_total, row.large_gifts_amount, row.card_amount ?? null] }));
-                const countSeries = o.kpi_compare.map((row) => ({ year: row.year, values: [row.donors, row.repeat ?? null, row.large_gifts, row.n_exceptional, row.card_gifts ?? null] }));
+                const moneySeries = kpiRows.map((row) => ({ year: row.year, values: [row.total, row.regular_total, row.exceptional_total, row.large_gifts_amount, row.card_amount ?? null] }));
+                const countSeries = kpiRows.map((row) => ({ year: row.year, values: [row.donors, row.repeat ?? null, row.large_gifts, row.n_exceptional, row.card_gifts ?? null] }));
                 return (
-                  <Card icon="trend" title={t("chart.kpi_title")} sub={o.kpi_compare.map((row) => row.year).join(" · ")}>
+                  <Card icon="trend" title={t("chart.kpi_title")} sub={kpiRows.map((row) => row.year).join(" · ")}>
                     <div className="grid g2">
                       <div>
                         <h3 className="small" style={{ marginBottom: 6 }}>{t("chart.kpi_money")}</h3>
-                        <Chart option={kpiCompareOption(moneyLabels, moneySeries, fmt, true)} label={t("chart.kpi_money")} exportName={t("chart.kpi_money")} height={320} />
+                        <Chart option={kpiCompareOption(moneyLabels, moneySeries, fmt, true)} label={t("chart.kpi_money")} exportName={t("chart.kpi_money")} height={380} />
                       </div>
                       <div>
                         <h3 className="small" style={{ marginBottom: 6 }}>{t("chart.kpi_counts")}</h3>
-                        <Chart option={kpiCompareOption(countLabels, countSeries, fmt, false)} label={t("chart.kpi_counts")} exportName={t("chart.kpi_counts")} height={320} />
+                        <Chart option={kpiCompareOption(countLabels, countSeries, fmt, false)} label={t("chart.kpi_counts")} exportName={t("chart.kpi_counts")} height={380} />
                       </div>
                     </div>
                     <p className="muted small">{t("chart.kpi_repeat_note")}</p>
@@ -258,7 +378,7 @@ export default function Overview() {
                           </tr>
                         </thead>
                         <tbody>
-                          {o.kpi_compare.map((row) => (
+                          {kpiRows.map((row) => (
                             <tr key={row.year}>
                               <td>{row.year}</td>
                               <td className="r num">{fmt.axisMoney(row.total)}</td>
@@ -278,9 +398,9 @@ export default function Overview() {
                   </Card>
                 );
               })()}
-            </Section>
+            </Section>}
 
-            <Section id="change" title={t("sec.change")} desc={t("sec.change_desc")}>
+            {comparing && <Section id="change" title={t("sec.change")} desc={t(view === "all" ? "sec.compare_all_desc" : "sec.compare_pick_desc")}>
               <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))" }}>
                 <Card icon="trend" title={t("chart.total_title")} sub={t("chart.total_sub")}>
                   <div className="band-cuts">
@@ -292,22 +412,28 @@ export default function Overview() {
                     </label>
                   </div>
                   {!cutsOk && <p className="muted small">{t("chart.band_order")}</p>}
-                  <Q q={trend}>{(r) => <Chart option={comboOption(r, bandCuts.current, fmt, t)} label={t("chart.total_aria")} exportName={t("chart.total_title")} height={360} />}</Q>
+                  <Q q={trend}>{(r) => {
+                    const rows = r.filter((row) => shownSet.has(row.year));
+                    return rows.length ? <Chart option={comboOption(rows, bandCuts.current, fmt, t)} label={t("chart.total_aria")} exportName={t("chart.total_title")} height={360} /> : null;
+                  }}</Q>
                   <How>{t("how.combo")}</How>
                 </Card>
-                <Card icon="chart" title={t("chart.bridge_title")} sub={t("chart.bridge_sub", { year: o.year, compare: o.prev_year ?? "–" })} help="tip.bridge"
-                  right={<Seg label={t("chart.bridge_mode")} value={mode} onChange={setMode} options={[{ v: "ordinary", l: t("scope.ordinary") }, { v: "all", l: t("scope.all") }]} />}>
-                  <Q q={bridge}>{(b) => (
-                    <>
-                      <Chart option={waterfallOption(b, mode, fmt, t)} label={t("chart.bridge_aria")} exportName={t("chart.bridge_title")} height={310} />
-                      {mode === "ordinary" && <How>{t("how.bridge_exc", { change: signed(b.exceptional_end - b.exceptional_start) })}</How>}
-                    </>
-                  )}</Q>
-                </Card>
               </div>
-            </Section>
+            </Section>}
 
-            <Section id="where" title={t("sec.where")} desc={t("sec.where_desc")}>
+            {!comparing && <Section id="change" title={t("sec.change")} desc={t("sec.change_desc")}>
+              <Card icon="chart" title={t("chart.bridge_title")} sub={t("chart.bridge_sub", { year: o.year, compare: o.prev_year ?? "–" })} help="tip.bridge"
+                right={<Seg label={t("chart.bridge_mode")} value={mode} onChange={setMode} options={[{ v: "ordinary", l: t("scope.ordinary") }, { v: "all", l: t("scope.all") }]} />}>
+                <Q q={bridge}>{(b) => (
+                  <>
+                    <Chart option={waterfallOption(b, mode, fmt, t)} label={t("chart.bridge_aria")} exportName={t("chart.bridge_title")} height={310} />
+                    {mode === "ordinary" && <How>{t("how.bridge_exc", { change: signed(b.exceptional_end - b.exceptional_start) })}</How>}
+                  </>
+                )}</Q>
+              </Card>
+            </Section>}
+
+            {comparing && <Section id="where" title={t("sec.where")} desc={t("sec.where_desc")}>
               <div className="grid">
                 <Card icon="pie" title={t("card.classes")} sub={t("card.classes_sub", { scope: o.scope_label })}>
                   <div className="band-cuts">
@@ -320,11 +446,12 @@ export default function Overview() {
                   </div>
                   <p className="muted small">{rangeOk ? t("chart.class_span") : t("chart.class_order")}</p>
                   {(() => {
-                    const compared = classes.data ?? o.class_compare;
-                    if (!compared.labels.length) return <p className="muted">{t("chart.class_empty")}</p>;
+                    const source = classes.data ?? o.class_compare;
+                    const compared = { ...source, series: source.series.filter((row) => shownSet.has(row.year)) };
+                    if (!compared.labels.length || !compared.series.length) return <p className="muted">{t("chart.class_empty")}</p>;
                     return (
                       <>
-                        <Chart option={classCompareOption(compared, fmt)} label={t("chart.classes_aria")} exportName={t("card.classes")} height={360} />
+                        <Chart option={classCompareOption(compared, fmt)} label={t("chart.classes_aria")} exportName={t("card.classes")} height={400} />
                         <div className="scroll">
                           <table className="t">
                             <thead>
@@ -350,6 +477,9 @@ export default function Overview() {
                   })()}
                 </Card>
               </div>
+            </Section>}
+
+            {!comparing && <Section id="where" title={t("sec.where")} desc={t("sec.where_desc")}>
               <div className="grid">
                 <Card icon="pie" title={t("card.directed")} sub={t("card.directed_sub", { scope: t("scope.ordinary") })}>
                   <Q q={tree}>{(tr) => <PurposeBoard tree={tr} label={t("chart.tree_aria")} />}</Q>
@@ -365,22 +495,26 @@ export default function Overview() {
                   {o.colleges.length ? <Chart option={hbar(o.colleges, fmt)} label={t("chart.colleges_aria")} exportName={t("card.colleges")} height={270} /> : <p className="muted">{t("overview.no_colleges")}</p>}
                 </Card>
               </div>
-            </Section>
+            </Section>}
 
-            <Section id="when" title={t("sec.when")} desc={t("sec.when_desc")}>
-              <div className="grid g2">
-                <Card icon="calendar" title={t("chart.season_title")} sub={t("chart.season_sub")}>
-                  <Q q={season}>{(s) => <Chart option={heatmapOption(s, fmt)} label={t("chart.season_aria")} exportName={t("chart.season_title")} height={110 + 56 * s.years.length} />}</Q>
-                  <How>{t("how.season")}</How>
-                </Card>
-                <Card icon="calendar" title={t("chart.monthly_title", { year: o.year })} sub={o.scope_label}
-                  right={<label className="small muted"><input type="checkbox" checked={log} onChange={(e) => setLog(e.target.checked)} /> {t("chart.log")}</label>}>
-                  <Chart option={monthlyOption(o.monthly, log, fmt, t)} label={t("chart.monthly_aria")} exportName={t("chart.monthly_title", { year: o.year })} height={300} />
-                </Card>
-              </div>
-            </Section>
+            {comparing && <Section id="when" title={t("sec.when")} desc={t("sec.when_desc")}>
+              <Card icon="calendar" title={t("chart.season_title")} sub={t("chart.season_sub")}>
+                <Q q={season}>{(s) => {
+                  const seasonView = { years: s.years.filter((value) => shownSet.has(value)), cells: s.cells.filter((cell) => shownSet.has(cell.year)) };
+                  return <Chart option={heatmapOption(seasonView, fmt)} label={t("chart.season_aria")} exportName={t("chart.season_title")} height={110 + 56 * seasonView.years.length} />;
+                }}</Q>
+                <How>{t("how.season")}</How>
+              </Card>
+            </Section>}
 
-            <Section id="concentration" title={t("sec.conc")} desc={t("sec.conc_desc")}>
+            {!comparing && <Section id="when" title={t("sec.when")} desc={t("sec.when_desc")}>
+              <Card icon="calendar" title={t("chart.monthly_title", { year: o.year })} sub={o.scope_label}
+                right={<label className="small muted"><input type="checkbox" checked={log} onChange={(e) => setLog(e.target.checked)} /> {t("chart.log")}</label>}>
+                <Chart option={monthlyOption(o.monthly, log, fmt, t)} label={t("chart.monthly_aria")} exportName={t("chart.monthly_title", { year: o.year })} height={300} />
+              </Card>
+            </Section>}
+
+            {!comparing && <Section id="concentration" title={t("sec.conc")} desc={t("sec.conc_desc")}>
               <Q q={conc}>{(c) => (
                 <div className="grid g-main">
                   <Card icon="pie" title={t("chart.conc_title")} sub={t("chart.conc_sub")} help="tip.conc">
@@ -394,9 +528,9 @@ export default function Overview() {
                   </div>
                 </div>
               )}</Q>
-            </Section>
+            </Section>}
 
-            <Accordion title={t("sec.tables")} open={tablesOpen} onToggle={(open) => { if (!holdToggle.current) setTablesOpen(open); }}>
+            {!comparing && <Accordion title={t("sec.tables")} open={tablesOpen} onToggle={(open) => { if (!holdToggle.current) setTablesOpen(open); }}>
               <div className="grid g2">
                 <div><h3 style={{ marginBottom: 8 }}>{t("card.bands")}</h3><Chart option={hbar(o.bands, fmt)} label={t("chart.bands_aria")} exportName={t("card.bands")} height={230} /><BreakdownTable rows={o.bands} first={t("col.band")} /></div>
                 <div><h3 style={{ marginBottom: 8 }}>{t("card.classes")}</h3><BreakdownTable rows={o.donor_classes} first={t("col.category")} /></div>
@@ -411,8 +545,8 @@ export default function Overview() {
                       <tbody>{o.projects_over_1m.map((p) => <tr key={p.project}><td>{p.project}</td><td className="r num">{fmt.ntd(p.amount)}</td></tr>)}</tbody></table>
                   ) : <p className="muted">{t("overview.none_here")}</p>}</div>
               </div>
-            </Accordion>
-            {o.notes.length > 0 && (
+            </Accordion>}
+            {!comparing && o.notes.length > 0 && (
               <Notice tone="warn" title={t("overview.notes_title")}>
                 <ul>{o.notes.map((n) => <li key={n}>{n}</li>)}</ul>
               </Notice>

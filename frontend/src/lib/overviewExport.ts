@@ -26,25 +26,31 @@ export function buildOverviewExport(input: {
   returnLabel: string;
   exceptional: number;
   large: number;
+  compareLead?: string;
 }): { summary: string; tables: CsvCell[][] } {
-  const { t, fmt, overview: o, trend, highlights, bridge, concentration, tree, bands, classCompare, returnLabel, exceptional, large } = input;
+  const { t, fmt, overview: o, trend, highlights, bridge, concentration, tree, bands, classCompare, returnLabel, exceptional, large, compareLead } = input;
   const k = o.kpis;
   const vs = o.prev_year != null ? t("kpi.vs", { year: o.prev_year }) : "";
   const share = t("export.col_share_pct");
   const amount = t("col.amount");
   const gifts = t("col.gifts");
 
-  const lines = [
+  const scopeLines = [
+    t("export.scope_line", { scope: o.scope_label }),
+    t("export.threshold_exc", { amount: fmt.compact(exceptional) }),
+    t("export.threshold_large", { amount: fmt.compact(large) }),
+    t("export.repeat_rule", { rule: returnLabel }),
+  ];
+  const lines = compareLead
+    ? [compareLead, "", ...scopeLines]
+    : [
     plain(t("hero.eyebrow", { year: o.year })),
     "",
     plain(o.prev_year != null && k.regular_yoy_pct != null
       ? t("hero.sentence", { year: o.year, compare: o.prev_year, total: fmt.compact(k.total), ordinary: fmt.compact(k.regular_total), change: fmt.signedPct(k.regular_yoy_pct) })
       : t("hero.sentence_first", { year: o.year, total: fmt.compact(k.total), ordinary: fmt.compact(k.regular_total) })),
     "",
-    t("export.scope_line", { scope: o.scope_label }),
-    t("export.threshold_exc", { amount: fmt.compact(exceptional) }),
-    t("export.threshold_large", { amount: fmt.compact(large) }),
-    t("export.repeat_rule", { rule: returnLabel }),
+    ...scopeLines,
     "",
     t("sec.numbers"),
     line(t("kpi.total", { year: o.year }), fmt.ntd(k.total), k.total_yoy_pct, vs),
@@ -84,17 +90,22 @@ export function buildOverviewExport(input: {
   }
   lines.push("", t("export.readme"));
 
-  const tables: CsvCell[][] = [
-    [t("sec.numbers")],
-    [t("export.metric"), t("export.value"), t("export.col_change_pct")],
-    [t("kpi.total", { year: o.year }), dollars(k.total), points(k.total_yoy_pct)],
-    [t("kpi.ordinary"), dollars(k.regular_total), points(k.regular_yoy_pct)],
-    [t("kpi.exceptional"), dollars(k.exceptional_total), sharePct(k.share_exceptional)],
-    [t("kpi.donors"), k.donors, ""],
-    [t("col.gifts"), k.records, ""],
-    [t("kpi.repeat"), k.repeat_selected ?? "", ""],
-    [t("kpi.large", { threshold: fmt.compact(large) }), k.large_gifts, ""],
-    [],
+  const tables: CsvCell[][] = [];
+  if (!compareLead) {
+    tables.push(
+      [t("sec.numbers")],
+      [t("export.metric"), t("export.value"), t("export.col_change_pct")],
+      [t("kpi.total", { year: o.year }), dollars(k.total), points(k.total_yoy_pct)],
+      [t("kpi.ordinary"), dollars(k.regular_total), points(k.regular_yoy_pct)],
+      [t("kpi.exceptional"), dollars(k.exceptional_total), sharePct(k.share_exceptional)],
+      [t("kpi.donors"), k.donors, ""],
+      [t("col.gifts"), k.records, ""],
+      [t("kpi.repeat"), k.repeat_selected ?? "", ""],
+      [t("kpi.large", { threshold: fmt.compact(large) }), k.large_gifts, ""],
+      [],
+    );
+  }
+  tables.push(
     [t("chart.kpi_title")],
     [t("col.year"), t("kpi.total_axis"), t("kpi.ordinary"), t("kpi.exceptional"), t("kpi.donors"), t("kpi.repeat"), t("kpi.large_count"), t("kpi.large_amount"), t("kpi.card_amount"), t("kpi.card")],
     ...o.kpi_compare.map((row) => [row.year, dollars(row.total), dollars(row.regular_total), dollars(row.exceptional_total), row.donors, row.repeat ?? "", row.large_gifts, dollars(row.large_gifts_amount), dollars(row.card_amount), row.card_gifts ?? ""]),
@@ -107,11 +118,15 @@ export function buildOverviewExport(input: {
       t("series.ordinary"), t("series.exceptional"), t("series.donors"), gifts, t("export.col_change_pct")],
     ...trend.map((row) => [row.year, dollars(row.total), dollars(row.band_under), dollars(row.band_mid), dollars(row.band_over), dollars(row.regular), dollars(row.exceptional), row.donors, row.records, points(row.total_yoy_pct)]),
     [],
-    [t("chart.monthly_title", { year: o.year })],
-    [t("export.month"), amount, t("series.ordinary"), t("series.exceptional"), gifts],
-    ...o.monthly.map((row) => [fmt.month(row.month), dollars(row.total), dollars(row.regular), dollars(row.exceptional), row.records]),
-    [],
-  ];
+  );
+  if (!compareLead) {
+    tables.push(
+      [t("chart.monthly_title", { year: o.year })],
+      [t("export.month"), amount, t("series.ordinary"), t("series.exceptional"), gifts],
+      ...o.monthly.map((row) => [fmt.month(row.month), dollars(row.total), dollars(row.regular), dollars(row.exceptional), row.records]),
+      [],
+    );
+  }
   const block = (title: string, first: string, rows: Breakdown[]) => {
     tables.push(
       [title],
@@ -120,8 +135,6 @@ export function buildOverviewExport(input: {
       [],
     );
   };
-  block(t("card.bands"), t("col.band"), o.bands);
-  block(t("card.classes"), t("col.category"), o.donor_classes);
   const compared = classCompare ?? o.class_compare;
   if (compared.series.length) {
     tables.push(
@@ -131,26 +144,30 @@ export function buildOverviewExport(input: {
       [],
     );
   }
-  block(t("card.methods"), t("col.method"), o.methods);
-  block(t("card.directed"), t("col.purpose"), o.purpose_groups);
-  block(t("card.designated"), t("col.category"), o.purpose_subs);
-  if (tree?.length) {
+  if (!compareLead) {
+    block(t("card.bands"), t("col.band"), o.bands);
+    block(t("card.classes"), t("col.category"), o.donor_classes);
+    block(t("card.methods"), t("col.method"), o.methods);
+    block(t("card.directed"), t("col.purpose"), o.purpose_groups);
+    block(t("card.designated"), t("col.category"), o.purpose_subs);
+    if (tree?.length) {
+      tables.push(
+        [t("card.directed")],
+        [t("col.purpose"), t("col.category"), t("col.band"), t("col.project"), amount],
+        ...purposeBlocks(tree).flatMap((block) => block.sections.flatMap((section) => section.bands.flatMap((band) => band.projects.map((project) => [
+          block.name, section.name === block.name ? "" : section.name, t(band.key), project.name, dollars(project.value),
+        ])))),
+        [],
+      );
+    }
+    block(t("card.colleges"), t("col.category"), o.colleges);
     tables.push(
-      [t("card.directed")],
-      [t("col.purpose"), t("col.category"), t("col.band"), t("col.project"), amount],
-      ...purposeBlocks(tree).flatMap((block) => block.sections.flatMap((section) => section.bands.flatMap((band) => band.projects.map((project) => [
-        block.name, section.name === block.name ? "" : section.name, t(band.key), project.name, dollars(project.value),
-      ])))),
+      [t("card.over1m")],
+      [t("col.project"), amount],
+      ...o.projects_over_1m.map((row) => [row.project, dollars(row.amount)]),
       [],
     );
   }
-  block(t("card.colleges"), t("col.category"), o.colleges);
-  tables.push(
-    [t("card.over1m")],
-    [t("col.project"), amount],
-    ...o.projects_over_1m.map((row) => [row.project, dollars(row.amount)]),
-    [],
-  );
   if (bridge) {
     tables.push(
       [t("chart.bridge_title")],

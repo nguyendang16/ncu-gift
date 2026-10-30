@@ -382,6 +382,7 @@ M: dict[str, str] = {
     "ai.demo.first_gift": "{year} 年有 {n} 位首次捐款人，其中 {k} 位（{rate}）隔年再度捐款；先前已捐過的捐款人則有 {repeat} 會回來。",
     "ai.demo.concentration": "前 1% 的捐款人貢獻了全部捐款的 {all}，以及一般捐款的 {ordinary}。",
     "ai.demo.general": "{year} 年捐款總額為 {total}，一般捐款為 {ordinary}，較前一年變動 {change}。",
+    "ai.demo.span": "{start_year} 到 {end_year} 年，捐款總額由 {total_start} 變為 {total_end}，一般捐款由 {ordinary_start} 變為 {ordinary_end}。",
     "ai.demo.base": "回流續捐 {repeat} 人，信用卡 {cards} 筆，大額捐款 {large} 筆。",
     "ai.demo.base_nocard": "回流續捐 {repeat} 人，大額捐款 {large} 筆。沒有捐助方式欄位，所以不算信用卡筆數。",
     "ai.demo.accounts": "捐款明細沒有主計室的捐贈收入收現和現金結餘，所以這兩項不填金額。",

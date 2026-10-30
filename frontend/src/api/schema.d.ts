@@ -1634,6 +1634,8 @@ export interface components {
             dataset_id?: number | null;
             /** Year */
             year?: number | null;
+            /** Years */
+            years?: number[] | null;
             /** Exceptional Threshold */
             exceptional_threshold?: number | null;
             /** Large Threshold */
@@ -1920,6 +1922,8 @@ export interface components {
             kpis: components["schemas"]["Kpis"];
             /** Kpi Compare */
             kpi_compare: components["schemas"]["KpiYear"][];
+            /** Kpi By Year */
+            kpi_by_year: components["schemas"]["KpiYear"][];
             /** Monthly */
             monthly: components["schemas"]["MonthRow"][];
             /** Bands */

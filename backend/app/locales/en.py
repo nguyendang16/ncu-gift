@@ -387,6 +387,7 @@ M: dict[str, str] = {
     "ai.demo.first_gift": "Of {n} first-time donors in {year}, {k} ({rate}) gave again the next year. Donors who had already given before came back {repeat} of the time.",
     "ai.demo.concentration": "The top 1% of donors gave {all} of all money, and {ordinary} of ordinary giving.",
     "ai.demo.general": "In {year} total giving was {total} and ordinary giving was {ordinary}, a change of {change} on the year before.",
+    "ai.demo.span": "From {start_year} to {end_year}, total giving went from {total_start} to {total_end}, and ordinary giving went from {ordinary_start} to {ordinary_end}.",
     "ai.demo.base": "Donors who gave again: {repeat}. Credit-card gifts: {cards}. Large gifts: {large}.",
     "ai.demo.base_nocard": "Donors who gave again: {repeat}. Large gifts: {large}. The records have no payment-method column, so credit-card gifts are not counted.",
     "ai.demo.accounts": "The gift records do not include the accounting office's cash receipts or cash surplus, so those amounts are left out.",
