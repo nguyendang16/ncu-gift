@@ -2,7 +2,7 @@
 import type { Bridge, Breakdown, Concentration, Journey, RiskPoint, Scenario, Season, TrendRow } from "../api/types";
 import type { Fmt } from "../i18n";
 import type { Key } from "../i18n/en";
-import { C, PALETTE, axisText, baseOption, yMoney } from "./chart";
+import { C, PALETTE, axisText, baseOption, yearColors, yMoney } from "./chart";
 
 export type T = (key: Key, params?: Record<string, string | number>) => string;
 const tip = (fmt: Fmt) => ({ valueFormatter: (v: number) => fmt.ntd(v) });
@@ -56,9 +56,9 @@ export function comboOption(rows: TrendRow[], cuts: { low: number; high: number 
     xAxis: { type: "category" as const, data: rows.map((r) => String(r.year)), axisLabel: axisText },
     yAxis: [withHeadroom(yMoney(fmt.axisMoney), peak), { type: "value" as const, axisLabel: axisText, splitLine: { show: false }, name: "", min: 0 }],
     series: [
-      band(under, "band_under", "#4c1d95", "#fff", [0, 0, 0, 0]),
-      band(mid, "band_mid", "#9333ea", "#fff", [0, 0, 0, 0]),
-      band(over, "band_over", "#d4a017", "#3f2d00", [6, 6, 0, 0]),
+      band(under, "band_under", "#2f5648", "#f6f3ee", [0, 0, 0, 0]),
+      band(mid, "band_mid", "#4f7a68", "#f6f3ee", [0, 0, 0, 0]),
+      band(over, "band_over", "#c4a574", "#2c2825", [6, 6, 0, 0]),
       { name: "total", type: "bar" as const, stack: "t", data: rows.map(() => 0), tooltip: { show: false },
         itemStyle: { color: "transparent" }, emphasis: { disabled: true },
         label: { show: true, position: "top" as const, distance: 6, color: C.ink, fontWeight: 650, fontSize: 12, formatter: (p: { dataIndex: number }) => fmt.axisMoney(rows[p.dataIndex]?.total ?? 0) } },
@@ -106,7 +106,7 @@ export function waterfallOption(b: Bridge, mode: "ordinary" | "all", fmt: Fmt, t
 
 export function kpiCompareOption(labels: string[], series: { year: number; values: (number | null)[] }[], fmt: Fmt, money: boolean) {
   const b = baseOption();
-  const colors = [C.violet, C.indigo, C.regular, C.sky, C.exceptional];
+  const colors = yearColors(series.length);
   const format = (v: number) => (money ? fmt.axisMoney(v) : fmt.int(v));
   const peak = Math.max(0, ...series.flatMap((row) => row.values.map((v) => v ?? 0)));
   return {
@@ -127,7 +127,7 @@ export function kpiCompareOption(labels: string[], series: { year: number; value
 
 export function classCompareOption(compare: { labels: string[]; series: { year: number; amounts: number[] }[] }, fmt: Fmt) {
   const b = baseOption();
-  const colors = [C.violet, C.indigo, C.regular, C.sky, C.exceptional];
+  const colors = yearColors(compare.series.length);
   const peak = Math.max(0, ...compare.series.flatMap((row) => row.amounts));
   return {
     ...b,
@@ -163,7 +163,7 @@ export function heatmapOption(s: Season, fmt: Fmt) {
     xAxis: { type: "category" as const, data: Array.from({ length: 12 }, (_, i) => fmt.month(i + 1)), splitArea: { show: true }, axisLabel: axisText },
     yAxis: { type: "category" as const, data: s.years.map(String), axisLabel: axisText, inverse: true },
     visualMap: { min: 0, max, calculable: false, orient: "horizontal" as const, left: "center", bottom: 4, itemWidth: 14, itemHeight: 160, textStyle: { color: C.muted },
-      inRange: { color: ["#ecfdf5", "#99f6e4", "#0d9488", "#115e59"] }, formatter: (v: number) => fmt.axisMoney(Math.round(v)) },
+      inRange: { color: ["#f3efe8", "#d5e4dc", "#8aa396", "#2f5648"] }, formatter: (v: number) => fmt.axisMoney(Math.round(v)) },
     series: [{ type: "heatmap" as const, data: s.cells.map((c) => [c.month - 1, s.years.indexOf(c.year), c.value]), itemStyle: { borderColor: "#fff", borderWidth: 3, borderRadius: 6 }
     }],
   };

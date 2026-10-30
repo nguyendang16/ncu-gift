@@ -133,7 +133,7 @@ export function How({ children }: { children: ReactNode }) {
 }
 
 /* ------------------------------------------------------------------ numbers */
-export function Sparkline({ values, color = "#0d9488" }: { values: number[]; color?: string }) {
+export function Sparkline({ values, color = "#4f7a68" }: { values: number[]; color?: string }) {
   if (values.length < 2) return null;
   const w = 96, h = 36, pad = 4;
   const min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
@@ -150,7 +150,7 @@ export function Sparkline({ values, color = "#0d9488" }: { values: number[]; col
 }
 
 export function StatCard({ icon, label, value, sub, spark, tone, help }: { icon: IconName; label: string; value: ReactNode; sub?: ReactNode; spark?: number[]; tone?: "amber" | "indigo"; help?: Key }) {
-  const color = tone === "amber" ? "#f59e0b" : tone === "indigo" ? "#4f46e5" : "#0d9488";
+  const color = tone === "amber" ? "#c4a574" : tone === "indigo" ? "#6b5e52" : "#4f7a68";
   return (
     <div className={`stat ${tone ?? ""}`}>
       <div className="top"><span className="ico"><Icon name={icon} size={18} /></span><span className="l">{label}{help && <InfoTip k={help} />}</span></div>
@@ -208,7 +208,7 @@ export function Loading({ label }: { label?: string }) {
 }
 
 export function EmptyState({ icon, title, children }: { icon: IconName; title: string; children?: ReactNode }) {
-  return <div className="empty"><div style={{ color: "var(--muted)", marginBottom: 8 }}><Icon name={icon} size={34} /></div><h3>{title}</h3>{children && <div className="small">{children}</div>}</div>;
+  return <div className="empty"><div className="empty-mark"><Icon name={icon} size={28} /></div><h3>{title}</h3>{children && <div className="small">{children}</div>}</div>;
 }
 
 /** Missing information is reported in the staff's own style, never papered over. */

@@ -8,12 +8,24 @@ echarts.use([BarChart, LineChart, PieChart, ScatterChart, HeatmapChart, TreemapC
   GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, VisualMapComponent, LegacyGridContainLabel, CanvasRenderer]);
 export { echarts };
 
-/** Colour means the same thing everywhere: teal = ordinary giving, amber = exceptional, green/rose = up/down, violet = AI. */
+/** Colour means the same thing everywhere: pine = ordinary giving, wheat = exceptional, green/rose = up/down, plum = AI. */
 export const C = {
-  regular: "#0d9488", exceptional: "#f59e0b", indigo: "#4f46e5", sky: "#0ea5e9", rose: "#e11d48", olive: "#65a30d",
-  violet: "#7c3aed", green: "#16a34a", slate: "#64748b", grey: "#cbd5e1", ink: "#0f172a", muted: "#64748b", line: "#e2e8f0",
+  regular: "#4f7a68", exceptional: "#c4a574", indigo: "#6b5e52", sky: "#8aa396", rose: "#8f4d52", olive: "#6e8b74",
+  violet: "#5e5670", green: "#3e6b4a", slate: "#8a8178", grey: "#d9d3cb", ink: "#2c2825", muted: "#70675e", line: "#e7e1d8",
 };
-export const PALETTE = [C.regular, C.indigo, C.exceptional, C.sky, C.rose, C.violet, C.olive, C.slate];
+/** Pine only, light to deep. Wheat stays reserved for exceptional giving. */
+const YEAR_SCALE = ["#6d8d7d", "#4f7a68", "#416b59", "#2f5648", "#243f35"];
+
+/** Years run light to deep. Three years use the ends and the middle so neighbours stay apart. */
+export function yearColors(count: number): string[] {
+  if (count <= 0) return [];
+  if (count === 1) return [YEAR_SCALE[2]];
+  if (count <= YEAR_SCALE.length) {
+    return Array.from({ length: count }, (_, i) => YEAR_SCALE[Math.round((i * (YEAR_SCALE.length - 1)) / (count - 1))]);
+  }
+  return Array.from({ length: count }, (_, i) => YEAR_SCALE[Math.min(i, YEAR_SCALE.length - 1)]);
+}
+export const PALETTE = ["#2f5648", "#4f7a68", "#8aa396", "#6b5e52", "#a89880", "#5c6b62", "#8a8178", "#3d4a44"];
 
 export const axisText = { color: C.muted, fontSize: 12 };
 // Animation is off on purpose: charts are screenshotted and exported, and the grow-in stalls in background tabs.

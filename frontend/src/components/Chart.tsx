@@ -31,7 +31,7 @@ export function Chart({ option, height = 280, label, exportName }: { option: ECh
     const chart = ref.current?.getEchartsInstance();
     if (!chart) return null;
     chart.resize();
-    return chart.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: "#ffffff" });
+    return chart.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: "#fffcf8" });
   };
 
   useEffect(() => {
