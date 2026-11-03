@@ -184,7 +184,7 @@ export function useDeleteConversation() {
 export function useInsights() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (b: { dataset_id?: number; year?: number; exceptional_threshold: number; large_threshold: number }) => api<InsightsOut>("/api/ai/insights", { body: b }),
+    mutationFn: (b: { dataset_id?: number; year?: number; years?: number[]; exceptional_threshold: number; large_threshold: number }) => api<InsightsOut>("/api/ai/insights", { body: b }),
     onSettled: () => { qc.invalidateQueries({ queryKey: ["ai-status"] }); qc.invalidateQueries({ queryKey: ["ai-log"] }); },
   });
 }

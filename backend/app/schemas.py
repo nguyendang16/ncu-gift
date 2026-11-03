@@ -127,6 +127,7 @@ class OverviewOut(BaseModel):
     scope_label: str
     kpis: Kpis
     kpi_compare: list[KpiYear]
+    kpi_by_year: list[KpiYear]
     monthly: list[MonthRow]
     bands: list[Breakdown]
     donor_classes: list[Breakdown]
@@ -733,6 +734,7 @@ class AskOut(AiMeta):
 class InsightsIn(BaseModel):
     dataset_id: int | None = None
     year: int | None = None
+    years: list[int] | None = None
     exceptional_threshold: float | None = None
     large_threshold: float | None = None
 

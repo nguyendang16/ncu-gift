@@ -26,29 +26,29 @@ METHOD_KEYS = ["credit_card", "bank_transfer", "atm", "cash", "taiwan_pay", "pos
 
 # (department, college, aliases used for fuzzy matching in free text)
 DEPARTMENTS = [
-    ("Civil Engineering", "Engineering", ["civil"]),
-    ("Mechanical Engineering", "Engineering", ["mechanical"]),
-    ("Chemical & Materials Engineering", "Engineering", ["chemical", "materials"]),
-    ("Business Administration", "Management", ["business admin"]),
-    ("Finance", "Management", ["finance"]),
-    ("Information Management", "Management", ["information management"]),
-    ("Computer Science", "EECS", ["computer science"]),
-    ("Electrical Engineering", "EECS", ["electrical"]),
-    ("Communication Engineering", "EECS", ["communication eng"]),
-    ("Physics", "Science", ["physics"]),
-    ("Mathematics", "Science", ["mathematics", "math"]),
-    ("Chemistry", "Science", ["chemistry"]),
-    ("Statistics", "Science", ["statistics"]),
-    ("Chinese Literature", "Liberal Arts", ["chinese lit"]),
-    ("English", "Liberal Arts", ["english"]),
-    ("History", "Liberal Arts", ["history"]),
-    ("Philosophy", "Liberal Arts", ["philosophy"]),
-    ("Earth Sciences", "Earth Sciences", ["earth sci"]),
-    ("Atmospheric Sciences", "Earth Sciences", ["atmospheric"]),
-    ("Space Science", "Earth Sciences", ["space science"]),
-    ("Biomedical Engineering", "Life Sciences & Biomedical", ["biomedical"]),
-    ("Life Sciences", "Life Sciences & Biomedical", ["life sci"]),
-    ("Hakka Studies", "Hakka College", ["hakka"]),
+    ("Civil Engineering", "Engineering", ["civil", "土木工程學系", "土木工程", "土木系", "土木"]),
+    ("Mechanical Engineering", "Engineering", ["mechanical", "機械工程學系", "機械工程", "機械系", "機械"]),
+    ("Chemical & Materials Engineering", "Engineering", ["chemical", "materials", "化學工程與材料工程學系", "化學工程", "化工系", "化工"]),
+    ("Business Administration", "Management", ["business admin", "企業管理學系", "企業管理", "企管系", "企管"]),
+    ("Finance", "Management", ["finance", "財務金融學系", "財務金融", "財金系", "財金"]),
+    ("Information Management", "Management", ["information management", "資訊管理學系", "資訊管理", "資管系", "資管"]),
+    ("Computer Science", "EECS", ["computer science", "資訊工程學系", "資訊工程", "資訊系", "資工系", "資工"]),
+    ("Electrical Engineering", "EECS", ["electrical", "電機工程學系", "電機工程", "電機系", "電機"]),
+    ("Communication Engineering", "EECS", ["communication eng", "通訊工程學系", "通訊工程", "通訊系"]),
+    ("Physics", "Science", ["physics", "物理學系", "物理系", "物理"]),
+    ("Mathematics", "Science", ["mathematics", "math", "數學系", "數學"]),
+    ("Chemistry", "Science", ["chemistry", "化學學系", "化學系"]),
+    ("Statistics", "Science", ["statistics", "統計研究所", "統計系", "統計"]),
+    ("Chinese Literature", "Liberal Arts", ["chinese lit", "中國文學系", "中文系"]),
+    ("English", "Liberal Arts", ["english", "英美語文學系", "英文系"]),
+    ("History", "Liberal Arts", ["history", "歷史學研究所", "歷史系"]),
+    ("Philosophy", "Liberal Arts", ["philosophy", "哲學研究所", "哲學系"]),
+    ("Earth Sciences", "Earth Sciences", ["earth sci", "地球科學學系", "地科系"]),
+    ("Atmospheric Sciences", "Earth Sciences", ["atmospheric", "大氣科學學系", "大氣系"]),
+    ("Space Science", "Earth Sciences", ["space science", "太空科學與工程學系", "太空系"]),
+    ("Biomedical Engineering", "Life Sciences & Biomedical", ["biomedical", "生物醫學工程研究所", "生醫系"]),
+    ("Life Sciences", "Life Sciences & Biomedical", ["life sci", "生命科學系", "生科系"]),
+    ("Hakka Studies", "Hakka College", ["hakka", "客家語文暨社會科學學系", "客家系"]),
 ]
 SUSTAINABILITY_COLLEGE = "Sustainability & Green Energy"
 COLLEGES = sorted({c for _, c, _ in DEPARTMENTS} | {SUSTAINABILITY_COLLEGE})
@@ -113,13 +113,16 @@ _CATALOGUE_BY_KEY = {_pkey(p["name"]): p for p in CATALOGUE}
 
 
 def find_department(text: str | None) -> tuple[str, str] | None:
+    """The department named in free text. The longest alias wins, so 資訊工程 is not read as 資訊管理."""
     t = _norm(text)
     if not t:
         return None
+    best, best_len = None, 0
     for dept, college, aliases in DEPARTMENTS:
-        if dept.lower() in t or any(a in t for a in aliases):
-            return dept, college
-    return None
+        for alias in (dept.lower(), *aliases):
+            if alias and alias in t and len(alias) > best_len:
+                best, best_len = (dept, college), len(alias)
+    return best
 
 
 def classify_project(name: str | None) -> dict:

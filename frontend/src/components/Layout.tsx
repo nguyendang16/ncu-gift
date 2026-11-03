@@ -4,6 +4,7 @@ import { useServerIsStale } from "../api/hooks";
 import { useApp } from "../context/AppContext";
 import { LANGS, useI18n } from "../i18n";
 import type { Key } from "../i18n/en";
+import gateArt from "../assets/ncu-gate.png";
 import { AiDock } from "./ai/Dock";
 import { AiDockProvider, useAiDock } from "./ai/dockContext";
 import { Icon, type IconName } from "./ui";
@@ -84,9 +85,12 @@ function Shell() {
   return (
     <div className={`app ${open ? "dock-open" : ""} ${open && wide ? "dock-wide" : ""}`}>
       <aside className="side">
+        <div className="side-art" aria-hidden="true">
+          <img src={gateArt} alt="" />
+        </div>
         <div className="brand">
           <div className="brand-mark">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11h16v10H4z M3 7h18v4H3z M12 7v14 M12 7c-2.5 0-4-1-4-2.5S9.5 2 12 7c2.5-5 4-2 4-2.5S14.5 7 12 7" /></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#853b2b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11h16v10H4z M3 7h18v4H3z M12 7v14 M12 7c-2.5 0-4-1-4-2.5S9.5 2 12 7c2.5-5 4-2 4-2.5S14.5 7 12 7" /></svg>
           </div>
           <b>NCU GIFT</b>
         </div>

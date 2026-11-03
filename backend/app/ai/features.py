@@ -54,7 +54,7 @@ ASK_SYSTEM = ("You are the analysis assistant inside NCU GIFT, a fundraising ana
               "Answer ONLY from the JSON `facts` in the user message. Keep the answer under about 120 words; use at most 4 short bullet points.\n" + RULES)
 INSIGHT_SYSTEM = ("You are the analysis assistant inside NCU GIFT. From the JSON `facts`, return JSON with `observations` and `recommendations`.\n"
                   "observations: exactly four items, keys compare, base, concentration, accounts, in that order. Each text is one or two plain sentences. "
-                  "compare covers the total and ordinary change. base covers repeat donors, credit-card gifts and large gifts when those figures exist. "
+                  "compare covers the total and ordinary change. If facts.context.years_in_view lists more than one year, that observation describes total and ordinary giving from the first year in facts.yearly to the last, quoting those figures as written, and does not calculate a new percentage. base covers repeat donors, credit-card gifts and large gifts when those figures exist. "
                   "concentration covers how much money sits with a few donors or projects. "
                   "accounts must say these records do not contain the accounting office cash receipts or cash surplus, and must not invent those amounts. "
                   "recommendations: three short options staff could consider, with no number that is not already written in the facts.\n"
@@ -228,10 +228,20 @@ def ask(session: Session, dataset_id: int, df: pd.DataFrame, *, question: str, h
     return {"answer": resp.text, "verification": v, **_meta(resp, call)}
 
 
-def insights(session: Session, dataset_id: int, df: pd.DataFrame, *, year: int | None, exceptional: float, large: float) -> dict:
+def insights(session: Session, dataset_id: int, df: pd.DataFrame, *, year: int | None, exceptional: float, large: float,
+             years: list[int] | None = None) -> dict:
     s = gate(session)
-    year = year or years_of(df)[-1]
+    available = years_of(df)
+    focus = [y for y in available if years and y in set(years)]
+    year = focus[-1] if focus else (year or available[-1])
     facts = build_facts(df, year, exceptional, large, share_project_names=s.share_project_names)
+    if len(focus) > 1:
+        keep = set(focus)
+        facts["yearly"] = [row for row in facts["yearly"] if row["year"] in keep]
+        facts["context"]["years_in_view"] = focus
+        journey = facts.get("donor_journey")
+        if journey:
+            journey["states_by_year"] = [row for row in journey["states_by_year"] if row["year"] in keep]
     pending = session.query(ReviewItem).filter(ReviewItem.dataset_id == dataset_id, ReviewItem.status == "pending").count()
     cands = act_mod.candidates(df, year, exceptional, large, pending_review=pending)
     facts["action_candidates"] = act_mod.public(cands)

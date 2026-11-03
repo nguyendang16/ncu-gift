@@ -137,6 +137,111 @@ def test_a_tool_result_with_a_donor_identifier_is_never_sent(client, mock_id, mo
     assert r.status_code == 403 and len(fake.calls) == 1
 
 
+def test_a_department_fundraising_question_uses_the_roll_and_project_history(client, mock_id, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY")
+    monkeypatch.setenv("NCU_GIFT_AI_DEMO", "1")
+    from app import org
+    assert org.find_department("我是資訊系教授") == ("Computer Science", "EECS")
+    assert org.find_department("資訊管理學系")[0] == "Information Management"
+    out = ask(client, mock_id, "我是資訊系教授，我現在要募款，可以找誰比較有可能捐款？", lang="zh-TW").json()
+    assert [s["tool"] for s in out["steps"]] == ["find_prospects"]
+    prospects = out["steps"][0]
+    assert prospects["ok"] is True and "先查" in prospects["summary"] and "資訊工程" in prospects["summary"]
+    table = prospects["table"]
+    assert table["columns"][0] == "捐款人" and "捐過的專案" in table["columns"]
+    names = [row[0] for row in table["rows"]]
+    assert names and all(not re.fullmatch(r"D\d{4}", name) for name in names)
+    assert any(name.startswith("模擬") or name == "中大之友" for name in names)
+    assert out["verification"]["ok"] is True
+
+
+def test_an_unknown_institute_uses_the_public_page_then_related_donors(client, mock_id, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY")
+    monkeypatch.setenv("NCU_GIFT_AI_DEMO", "1")
+    monkeypatch.setattr("app.services.public_unit.public_background", lambda phrase: {
+        "ok": True, "departments": ["Computer Science"], "education": True, "source": "lst.ncu.edu.tw"})
+    out = ask(client, mock_id, "網路學習科技研究所", lang="zh-TW").json()
+    step = out["steps"][0]
+    assert step["tool"] == "find_prospects" and step["ok"] is True
+    assert "上網" in step["summary"] and "網路學習科技研究所" in step["summary"]
+    assert "資訊工程" in step["summary"] and "教育" in step["summary"] and "lst.ncu.edu.tw" in step["summary"]
+    names = [row[0] for row in step["table"]["rows"]]
+    assert names and all(not re.fullmatch(r"D\d{4}", name) for name in names)
+    assert any(name.startswith("模擬") or name == "中大之友" for name in names)
+    assert not re.search(r"D\d{4}", out["answer"])
+    assert out["verification"]["ok"] is True
+
+
+def test_a_public_page_that_matches_nothing_does_not_invent_a_list(client, mock_id, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY")
+    monkeypatch.setenv("NCU_GIFT_AI_DEMO", "1")
+    monkeypatch.setattr("app.services.public_unit.public_background", lambda phrase: {
+        "ok": False, "departments": [], "education": False, "source": ""})
+    out = ask(client, mock_id, "網路學習科技研究所", lang="zh-TW").json()
+    step = out["steps"][0]
+    assert step["ok"] is True and "沒有" in step["summary"] and not step["table"]
+    assert out["verification"]["ok"] is True
+
+
+def test_asking_what_the_match_score_uses_returns_the_weights(client, mock_id, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY")
+    monkeypatch.setenv("NCU_GIFT_AI_DEMO", "1")
+    out = ask(client, mock_id, "配對分數依據是什麼", lang="zh-TW").json()
+    step = out["steps"][0]
+    assert step["tool"] == "explain_match_score" and step["ok"] is True
+    assert "曾捐給該項目" in step["summary"] and "權重 3" in step["summary"]
+    assert "系所" in step["summary"] and "權重 2" in step["summary"]
+    assert "每早一年就減半" in step["summary"]
+    assert step["table"]["columns"][0] == "項目"
+    assert out["verification"]["ok"] is True
+
+
+def test_a_public_description_connects_network_learning_to_computing_and_education():
+    from app.services.public_unit import departments_in_text, education_in_text
+    text = "本所前身為中央大學資訊工程學系的學習科技實驗室，研究數位學習，結合教育與資訊科技。English learning is also mentioned."
+    assert departments_in_text(text) == ["Computer Science"]
+    assert education_in_text(text) is True
+    assert departments_in_text("物理很有趣，但是這段沒有系所全名") == []
+
+
+def test_an_institute_named_only_in_the_records_is_looked_up_before_the_list(monkeypatch):
+    import pandas as pd
+    from types import SimpleNamespace
+    from app import i18n
+    from app.services import matching
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    df = pd.DataFrame([
+        {"donor_code": "D0001", "year": 2024, "amount_ntd": 8000, "is_in_kind": False,
+         "project_name": "網路學習科技研究所：數位學習基金", "project_raw": "網路學習科技研究所：數位學習基金",
+         "unit": None, "college": None, "purpose_sub": "Departmental teaching & research", "purpose_group": "designated",
+         "dept": None, "donor_class": "alumni", "anonymous": False, "grad_year": 2010},
+        {"donor_code": "D0002", "year": 2025, "amount_ntd": 90000, "is_in_kind": False,
+         "project_name": "圖書館屋頂", "project_raw": "圖書館屋頂",
+         "unit": None, "college": None, "purpose_sub": "Administrative units", "purpose_group": "designated",
+         "dept": None, "donor_class": "company", "anonymous": False, "grad_year": None},
+        {"donor_code": "D0003", "year": 2023, "amount_ntd": 1000, "is_in_kind": False,
+         "project_name": None, "project_raw": None,
+         "unit": None, "college": None, "purpose_sub": None, "purpose_group": None,
+         "dept": "網路學習科技研究所", "donor_class": "alumni", "anonymous": False, "grad_year": 2018},
+    ])
+    token = i18n.set_lang("zh-TW")
+    try:
+        found = matching.prospects_for_text(df, "我是網路學習科技研究所的教授，想募款可以找誰", 10)
+        assert found["phrase"] == "網路學習科技研究所" and found["found"] is True
+        assert any("數位學習" in p["label"] for p in found["projects"])
+        ids = [c["donor_id"] for c in found["candidates"]]
+        assert ids and ids[0] == "D0001" and "D0003" in ids and "D0002" not in ids
+        ctx = SimpleNamespace(df=df, share_names=False, names={"D0001": "王小明", "D0002": "某公司", "D0003": "林同學"})
+        out = agent.find_prospects(ctx, {"query": "網路學習科技研究所", "count": 10})
+        blob = json.dumps(out.model, ensure_ascii=False)
+        assert out.model["found"] is True and out.model["related_projects"] >= 1
+        assert "王小明" not in blob and "D0001" not in blob and "數位學習" not in blob
+        assert out.table["rows"][0][0] == "王小明"
+        assert "數位學習" in out.args_text and "先查" in out.summary and "院系教學研究" in out.summary
+    finally:
+        i18n.reset_lang(token)
+
+
 def test_demo_mode_works_without_a_key_in_both_languages(client, mock_id, monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY")
     monkeypatch.setenv("NCU_GIFT_AI_DEMO", "1")

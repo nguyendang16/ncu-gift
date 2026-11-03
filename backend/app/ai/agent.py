@@ -18,9 +18,9 @@ from types import SimpleNamespace
 import pandas as pd
 from sqlalchemy.orm import Session
 
-from .. import i18n
+from .. import i18n, org
 from ..i18n import t
-from ..services import insights as ins, journey as jr, matching, risk as rk, scenario as scn, stats
+from ..services import insights as ins, journey as jr, matching, risk as rk, roll, scenario as scn, stats
 from ..services.frame import InsufficientData, cash, years_of
 from . import actions as act_mod, client, guide
 from .client import AiError
@@ -66,11 +66,13 @@ TOOLS: list[Tool] = [
     Tool("donor_retention", "New, retained, returning and lapsed donors per year, and how many first-time donors gave again.", {}),
     Tool("at_risk_donors", "Donors most likely to stop giving, ranked by money at stake, with the model's out-of-sample accuracy. The app shows the list itself.",
          {"count": {"type": "integer", "minimum": 5, "maximum": 50, "description": "How many donors to list (default 20)."}}),
-    Tool("list_matching_targets", "Find the purposes, departments or projects that donors can be matched to. Returns target ids for find_prospects.",
-         {"query": {"type": "string", "description": "Part of a name to look for, e.g. 'scholarship'. Omit for the largest targets."}}),
-    Tool("find_prospects", "Existing donors who are the best prospects for one target (use an id from list_matching_targets). The app shows the list itself.",
-         {"target_id": {"type": "string", "description": "A target id such as 'sub:Student clubs' from list_matching_targets."},
-          "count": {"type": "integer", "minimum": 5, "maximum": 50}}, ["target_id"]),
+    Tool("list_matching_targets", "Find the purposes, departments or projects that donors can be matched to. Pass the department or project words from the question, including Chinese such as 資訊系. Returns target ids for find_prospects.",
+         {"query": {"type": "string", "description": "Department, purpose or project words from the question, e.g. '資訊系' or 'scholarship'."}}),
+    Tool("find_prospects", "Look up a department, institute or project in the records, then list existing donors most likely to give. Pass query as the person's own words, including a unit that is not in the preset list (for example 網路學習科技研究所). The tool searches projects, units and donor background first. Pass target_id only when list_matching_targets already returned one. The app shows the donor-roll names itself.",
+         {"query": {"type": "string", "description": "The department, institute or project words from the question, unchanged."},
+          "target_id": {"type": "string", "description": "Optional. A target id from list_matching_targets, such as 'unit:Computer Science'."},
+          "count": {"type": "integer", "minimum": 5, "maximum": 50}}, []),
+    Tool("explain_match_score", "Explain what the donor-matching score is based on: the six parts and their weights. Use when someone asks how the score is calculated or what it means. Quote the explained text. Do not invent weights.", {}),
     Tool("plan_to_raise", "Goal planning: what it would take to RAISE an extra amount of ordinary giving next year, lever by lever (keeping more first-time or repeat donors, "
          "recruiting more, recurring giving), how many typical gifts that is, and how much of the money at risk would need to be kept. Optionally for one purpose/project. "
          "Use for 'I want to raise about NT$1M, what should we do?'. The app shows the options table itself.",
@@ -261,29 +263,152 @@ def list_matching_targets(c, a) -> ToolOut:
     rows = matching.list_targets(c.df)
     if not c.share_names:
         rows = [r for r in rows if r["kind"] != "project"]
-    if q:
+    hit = org.find_department(q) if q else None
+    if hit:
+        dept = hit[0]
+        rows = [r for r in rows if r["id"] == f"unit:{dept}" or dept.lower() in r["id"].lower()]
+        rows.sort(key=lambda r: (r["id"] != f"unit:{dept}", -r["donors"]))
+    elif q:
         rows = [r for r in rows if q in r["label"].lower() or q in r["id"].lower()]
-    rows = sorted(rows, key=lambda r: -r["donors"])[:15]
-    return ToolOut({"targets": [{"target_id": r["id"], "label": r["label"], "kind": r["kind"], "donors_who_gave_to_it": r["donors"]} for r in rows]},
-                   t("agent.sum.targets", n=len(rows)), t("agent.arg.query", q=q) if q else "")
+        rows.sort(key=lambda r: -r["donors"])
+    else:
+        rows.sort(key=lambda r: -r["donors"])
+    rows = rows[:15]
+    model = {"matched": len(rows), "targets": [{"target_id": r["id"], "label": r["label"], "kind": r["kind"], "donors_who_gave_to_it": r["donors"]} for r in rows]}
+    summary = t("agent.sum.targets", n=len(rows))
+    if q and not rows:
+        bg = matching.related_background(c.df, str(a.get("query") or ""))
+        if bg["found"]:
+            model["looked_up"] = bg["phrase"]
+            model["related_projects"] = len(bg["projects"])
+            model["people_with_this_background"] = bg["donors"]
+            model["next"] = "call find_prospects with query set to the same words"
+            if c.share_names:
+                model["project_names"] = [p["label"] for p in bg["projects"][:8]]
+            purposes = []
+            for p in bg["projects"]:
+                if p["purpose_label"] and p["purpose_label"] not in purposes:
+                    purposes.append(p["purpose_label"])
+            summary = _background_line(bg["phrase"], len(bg["projects"]), bg["donors"], purposes[:4])
+    return ToolOut(model, summary, t("agent.arg.query", q=q) if q else "")
+
+
+def _gave_projects(df: pd.DataFrame, donor: str, kind: str, name: str) -> str:
+    h = df[df["donor_code"] == donor]
+    if kind == "unit":
+        scoped = h[h["unit"] == name]
+    elif kind == "sub":
+        scoped = h[h["purpose_sub"] == name]
+    else:
+        scoped = h[h["project_name"] == name]
+    if len(scoped):
+        h = scoped
+    named = h.dropna(subset=["project_name"])
+    if named.empty:
+        return "–"
+    totals = named.groupby("project_name")["amount_ntd"].sum().sort_values(ascending=False)
+    return "、".join(i18n.project_label(str(n)) for n in list(totals.head(2).index))
+
+
+def _background_line(phrase: str, projects: int, donors: int, purposes: list[str]) -> str:
+    phrase = str(phrase).replace("{", "").replace("}", "")
+    if purposes:
+        sep = "、" if i18n.current() == "zh-TW" else ", "
+        return t("agent.sum.prospects_bg_purpose", phrase=phrase, projects=projects, donors=donors, purposes=sep.join(purposes))
+    return t("agent.sum.prospects_bg", phrase=phrase, projects=projects, donors=donors)
+
+
+def _safe_phrase(phrase: str) -> str:
+    return str(phrase).replace("{", "").replace("}", "")
+
+
+def _public_prospects(c, bg: dict, n: int) -> ToolOut:
+    phrase = _safe_phrase(bg.get("phrase") or "")
+    related = _safe_phrase(bg.get("public_related") or "")
+    source = _safe_phrase(bg.get("public_source") or "")
+    cands = bg.get("candidates") or []
+    if not cands:
+        key = "agent.sum.prospects_web_empty" if source else "agent.sum.prospects_web_empty_nosource"
+        summary = t(key, phrase=phrase, related=related, source=source)
+        return ToolOut({"found": False, "looked_up": phrase, "public_related": related, "source": source, "listed": 0},
+                       summary, t("agent.arg.query", q=phrase) if phrase else "")
+    kind, target_name = matching.parse_target(bg["target_id"]) if bg.get("target_id") else ("project", "")
+    key = "agent.sum.prospects_web" if source else "agent.sum.prospects_web_nosource"
+    summary = t(key, phrase=phrase, related=related, source=source, n=len(cands))
+    out = _prospect_result(c, cands, bg["label"], kind, target_name, scored=bg["n_candidates"],
+                           phrase=phrase, projects=bg.get("projects") or [], donors=bg["donors"], target_id=bg.get("target_id"),
+                           summary=summary, extra={"public_related": related, "source": source, "from_public_page": True})
+    out.args_text = (t("agent.arg.query", q=phrase) + (f" · {related}" if related else "")).strip()
+    return out
+
+
+def _prospect_result(c, cands, label: str, kind: str, target_name: str, *, scored: int, phrase: str, projects: list[dict], donors: int, target_id: str | None,
+                     summary: str | None = None, extra: dict | None = None) -> ToolOut:
+    by_class: dict[str, int] = {}
+    for d in cands:
+        by_class[d["donor_class_label"]] = by_class.get(d["donor_class_label"], 0) + 1
+    purposes: list[str] = []
+    for p in projects:
+        if p.get("purpose_label") and p["purpose_label"] not in purposes:
+            purposes.append(p["purpose_label"])
+    public = label
+    if not c.share_names and target_id and target_id.startswith("project:"):
+        public = phrase or label
+    res = {"found": True, "looked_up": phrase, "related_projects": len(projects), "people_with_this_background": donors,
+           "purposes": purposes[:4], "target": public, "donors_scored": scored, "listed": len(cands),
+           "top_score_out_of_100": round(cands[0]["score"]) if cands else None, "listed_by_donor_type": by_class,
+           "meaning": "The records were searched for this name before anyone was listed. The app shows the names. Anonymous donors stay masked."}
+    if extra:
+        res.update(extra)
+    if c.share_names:
+        res["project_names"] = [p["label"] for p in projects[:8]]
+    names = getattr(c, "names", {}) or {}
+    cols = [t("agent.col.donor"), t("agent.col.type"), t("agent.col.score"), t("agent.col.last"), t("agent.col.projects"), t("agent.col.evidence")]
+    rows = [[roll.display_name(d["anonymous"], d["donor_id"], names), d["donor_class_label"], f"{d['score']:.0f}", d["last_gift_year"],
+             _gave_projects(c.df, d["donor_id"], kind, target_name), "; ".join(d["evidence"][:2])] for d in cands]
+    line = _background_line(phrase or label, len(projects), donors, purposes[:4])
+    if summary is None:
+        summary = line + t("agent.sum.prospects", n=len(cands), target=label)
+    args = t("agent.arg.query", q=phrase) if phrase else label
+    if projects:
+        args += " · " + "、".join(p["label"] for p in projects[:3])
+    known = {r["id"] for r in matching.list_targets(c.df)}
+    links = [guide.link("matching", target=target_id)] if target_id and target_id in known else [guide.link("matching")]
+    return ToolOut(res, summary, args, _table(cols, rows), links=links)
 
 
 def find_prospects(c, a) -> ToolOut:
-    tid = str(a.get("target_id") or "")
+    query = str(a.get("query") or "").strip()
+    tid = str(a.get("target_id") or "").strip()
+    n = int(_clamp(a.get("count"), 5, 50, 15))
+    if query and not tid:
+        bg = matching.prospects_for_text(c.df, query, n)
+        phrase = bg["phrase"]
+        if bg.get("via") == "public":
+            return _public_prospects(c, bg, n)
+        if not bg["found"] or not bg["candidates"]:
+            return ToolOut({"found": False, "looked_up": phrase, "related_projects": 0, "people_with_this_background": 0},
+                           t("agent.sum.prospects_none", phrase=str(phrase).replace("{", "").replace("}", "")),
+                           t("agent.arg.query", q=phrase) if phrase else "")
+        kind, target_name = matching.parse_target(bg["target_id"]) if bg.get("target_id") else ("project", "")
+        return _prospect_result(c, bg["candidates"], bg["label"], kind, target_name, scored=bg["n_candidates"],
+                                phrase=phrase, projects=bg["projects"], donors=bg["donors"], target_id=bg.get("target_id"))
     valid = {r["id"]: r for r in matching.list_targets(c.df)}
     if tid not in valid or (valid[tid]["kind"] == "project" and not c.share_names):
-        raise ValueError("unknown target_id: call list_matching_targets first and use one of its ids")
-    n = int(_clamp(a.get("count"), 5, 50, 15))
+        raise ValueError("unknown target_id: pass query set to the person's words, or call list_matching_targets and use one of its ids")
     r = matching.rank(c.df, tid, n)
+    kind, target_name = matching.parse_target(tid)
     cands = r["candidates"]
     by_class: dict[str, int] = {}
     for d in cands:
         by_class[d["donor_class_label"]] = by_class.get(d["donor_class_label"], 0) + 1
     res = {"target": r["label"], "donors_scored": r["n_candidates"], "listed": len(cands), "top_score_out_of_100": round(cands[0]["score"]) if cands else None,
            "listed_by_donor_type": by_class,
-           "meaning": "score 0-100 combines: gave to this target, gave to similar targets, recent and frequent giving, giving level, donor type fit"}
-    cols = [t("agent.col.donor"), t("agent.col.type"), t("agent.col.score"), t("agent.col.last"), t("agent.col.evidence")]
-    rows = [[d["donor_id"], d["donor_class_label"], f"{d['score']:.0f}", d["last_gift_year"], "; ".join(d["evidence"][:2])] for d in cands]
+           "meaning": "Ranked from the donor roll by gifts already made to this target and to similar purposes. The app shows the names. Anonymous donors stay masked."}
+    names = getattr(c, "names", {}) or {}
+    cols = [t("agent.col.donor"), t("agent.col.type"), t("agent.col.score"), t("agent.col.last"), t("agent.col.projects"), t("agent.col.evidence")]
+    rows = [[roll.display_name(d["anonymous"], d["donor_id"], names), d["donor_class_label"], f"{d['score']:.0f}", d["last_gift_year"],
+             _gave_projects(c.df, d["donor_id"], kind, target_name), "; ".join(d["evidence"][:2])] for d in cands]
     return ToolOut(res, t("agent.sum.prospects", n=len(cands), target=r["label"]), r["label"], _table(cols, rows))
 
 
@@ -444,6 +569,22 @@ def plan_to_raise(c, a) -> ToolOut:
                    None, links, plan_visual)
 
 
+def explain_match_score(c, a) -> ToolOut:
+    order = ("direct", "unit", "college", "sub", "active", "capacity")
+    parts = [{"part": t(f"agent.score.{k}"), "weight": matching.WEIGHTS[k], "means": t(f"agent.score.{k}_means")} for k in order]
+    total = round(matching.MAX_SCORE, 1)
+    lines = [t("agent.score.lead", top=100)]
+    lines += [t("agent.score.part", name=p["part"], weight=f"{p['weight']:g}", means=p["means"]) for p in parts]
+    lines.append(t("agent.score.recent"))
+    lines.append(t("agent.score.combine", total=f"{total:g}", top=100))
+    text = " ".join(lines)
+    model = {"score_out_of": 100, "weight_total": total, "parts": parts, "explained": text,
+             "recent_gift_rule": t("agent.score.recent")}
+    table = _table([t("agent.score.col_part"), t("agent.score.col_weight"), t("agent.score.col_means")],
+                   [[p["part"], f"{p['weight']:g}", p["means"]] for p in parts])
+    return ToolOut(model, text, "", table, links=[guide.link("matching")])
+
+
 def find_feature(c, a) -> ToolOut:
     ids = guide.search(str(a.get("query") or ""))
     return ToolOut({"pages": [guide.describe(i) for i in ids]}, t("agent.sum.features", n=len(ids)), "",
@@ -451,7 +592,7 @@ def find_feature(c, a) -> ToolOut:
 
 
 IMPL = {f.__name__: f for f in (plan_to_raise, find_feature, giving_overview, giving_by_year, why_total_changed, concentration, monthly_pattern, donor_retention, at_risk_donors,
-                                list_matching_targets, find_prospects, run_scenario)}
+                                list_matching_targets, find_prospects, explain_match_score, run_scenario)}
 
 
 # ------------------------------------------------------------------------ the loop
@@ -461,8 +602,15 @@ AGENT_SYSTEM = ("You are the analyst inside NCU GIFT, a fundraising analytics to
                 "How to answer:\n"
                 "- Quote figures exactly as the tool's `text` fields give them. Never compute, round or combine figures yourself.\n"
                 "- After every sentence that contains a figure, cite the tool results it came from as [n] using each result's `source` number, e.g. [1] or [1][2].\n"
-                "- For 'who should we call / ask' questions, run at_risk_donors or find_prospects. The app shows the donor table itself next to your answer: "
-                "do not list donors, just say what the list is and the main pattern.\n"
+                "- For 'who should we call / ask' questions, run at_risk_donors when they might stop giving. "
+                "When they name a department, institute, college or project, or ask who is more likely to donate — including a unit that is not in any preset list, such as 網路學習科技研究所 — "
+                "call find_prospects with query set to their words. Do not invent a target id. "
+                "The tool first searches the gift records. If that name is absent, it reads a public web page about the unit and ranks people who already gave to the related fields named there, such as information engineering and education. "
+                "If public_related is present, say that first, in the tool's words: the name is not in the gift records, and the public page connects it to public_related. Quote the listed count. Do not add a description the tool did not return. "
+                "If it reports that nothing matched, say so in one sentence and do not recommend anyone. "
+                "If the records themselves matched, first say what was found (the looked-up name, how many related projects, the purposes, how many people already gave), quoting those figures, "
+                "then say the app lists the more likely donors beside your answer. Do not list donors yourself. Anonymous donors stay masked.\n"
+                "- When they ask what the matching score is based on, or how it is calculated, call explain_match_score and repeat its `explained` text. Do not change the weights.\n"
                 "- For goal questions ('I want to raise about NT$1M', 'how do we reach X', 'what should we do to ...'), call plan_to_raise with the amount "
                 "(1 million = 1000000; 萬 = 10000) and, only if the person names one, a focus target. The goal means EXTRA ordinary giving on top of the baseline: say so. "
                 "Answer in four short parts: what the goal means; the two or three most realistic options with their figures in plain words (people, gifts, shares), "
@@ -498,7 +646,8 @@ def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: 
     s = gate(session)
     cfg = get_config()
     known = known_identifiers(session, dataset_id)
-    ctx = SimpleNamespace(df=df, years=years_of(df), exceptional=exceptional, large=large, share_names=s.share_project_names)
+    ctx = SimpleNamespace(df=df, years=years_of(df), exceptional=exceptional, large=large, share_names=s.share_project_names,
+                          names=roll.names_for(session, dataset_id) if dataset_id is not None else {})
     steps: list[dict] = []
     results: list[dict] = []           # what the model saw, for the number check
     arg_log: list[dict] = []
@@ -599,10 +748,29 @@ def run_agent(session: Session, dataset_id: int, df: pd.DataFrame, *, question: 
 
 # ------------------------------------------------------------------------ demo (no key): a keyword planner, canned wording
 
+def _names_a_unit(question: str) -> bool:
+    if org.find_department(question):
+        return True
+    phrase = matching.subject_phrase(question)
+    return any(phrase.endswith(suf) for suf in ("研究所", "學系", "學院", "學程", "中心"))
+
+
 def _demo(session, ctx, question, execute, steps, results, arg_log, emit=lambda _e: None) -> dict:
     q = question.lower()
     plan: list[tuple[str, dict]]
-    if any(k in q for k in ("risk", "stop", "lapse", "lose", "call", "流失", "風險", "致電", "停止")):
+    asks_score = ("配對分數" in question or "分數依據" in question or ("分數" in question and any(k in question for k in ("依據", "怎麼", "如何", "什麼", "計算", "組成")))
+                  or ("score" in q and any(k in q for k in ("based", "how", "weight", "mean", "calculat"))))
+    fundraising = any(k in q for k in ("募款", "找誰", "可能捐", "prospect", "fundrais", "推薦", "名單"))
+    why = any(k in q for k in ("為什麼", "下降", "變動", "why", "drop", "fall", "change"))
+    stop = any(k in q for k in ("流失", "風險", "停止", "lapse", "stop", "risk", "lose", "致電"))
+    other = why or any(k in q for k in ("如果", "情境", "what if", "scenario", "總額", "多少", "how much", "total"))
+    if asks_score:
+        plan = [("explain_match_score", {})]
+    elif _names_a_unit(question) and fundraising and not why and not stop:
+        plan = [("find_prospects", {"query": question, "count": 10})]
+    elif _names_a_unit(question) and not other and not stop and not any(k in q for k in ("call", "月", "集中", "month")):
+        plan = [("find_prospects", {"query": question, "count": 10})]
+    elif any(k in q for k in ("risk", "stop", "lapse", "lose", "call", "流失", "風險", "致電", "停止")):
         plan = [("at_risk_donors", {"count": 10})]
     elif any(k in q for k in ("what if", "scenario", "retention", "如果", "情境", "留存")):
         plan = [("run_scenario", {"first_time_retention_uplift_pts": 5})]

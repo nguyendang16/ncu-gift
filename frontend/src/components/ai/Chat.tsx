@@ -6,6 +6,7 @@ import { useI18n } from "../../i18n";
 import type { Key } from "../../i18n/en";
 import { AiOffHint, DemoNotice, useAiReady } from "../AiParts";
 import { Icon, type IconName } from "../ui";
+import { RobotMark } from "./RobotMark";
 import { type Turn, useAgentChat } from "./useAgentChat";
 import { Visual } from "./Visuals";
 
@@ -122,7 +123,7 @@ function TurnView({ turn, chat, onNavigate }: { turn: Turn; chat: Chat; onNaviga
     <div className="cp-turn">
       <div className="cp-user"><span>{turn.q}</span></div>
       <div className="cp-ai" ref={refs}>
-        <span className="cp-av" aria-hidden="true"><Icon name="ai" size={15} /></span>
+        <span className="cp-av" aria-hidden="true"><RobotMark /></span>
         <div className="cp-body">
           {turn.status === "working" && <Working turn={turn} />}
           {turn.status === "error" && <div className="cp-err" role="alert"><Icon name="risk" size={16} /><div>{turn.error?.message}{(turn.error as { code?: string } | undefined)?.code === "ai_blocked" && <> <Link to="/ai">{t("ai.open_settings")}</Link></>}</div></div>}
@@ -167,7 +168,7 @@ function Empty({ chat, ready, wide }: { chat: Chat; ready: boolean; wide?: boole
   const keys = suggestionKeys(loc.pathname);
   return (
     <div className={`cp-empty ${wide ? "wide" : ""}`}>
-      <span className="cp-logo"><Icon name="ai" size={26} /></span>
+      <span className="cp-logo"><RobotMark /></span>
       <h2>{t("ai.hello")}</h2>
       <p>{t("ai.hello_sub")}</p>
       <div className="cp-cards">
@@ -207,7 +208,7 @@ export function ChatBody({ chat, onNavigate, wide }: { chat: Chat; onNavigate?: 
         <AiOffHint />
         {chat.turns.length === 0 && !chat.loading ? <Empty chat={chat} ready={ready} wide={wide} /> : (
           <div className="cp-thread">
-            {chat.loading !== undefined && <div className="cp-ai"><span className="cp-av"><Icon name="ai" size={15} /></span><div className="cp-body muted">{t("ui.loading")}</div></div>}
+            {chat.loading !== undefined && <div className="cp-ai"><span className="cp-av"><RobotMark /></span><div className="cp-body muted">{t("ui.loading")}</div></div>}
             {chat.turns.map((x) => <TurnView key={x.key} turn={x} chat={chat} onNavigate={onNavigate} />)}
             <div ref={end} />
           </div>

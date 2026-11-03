@@ -40,13 +40,22 @@ def _insights(p: dict) -> dict:
     cur = next(y for y in f["yearly"] if y["year"] == year)
     detail = f["selected_year_detail"]
     change = (cur["ordinary_change_vs_previous_year"] or {"text": "–"})["text"]
+    view = f["context"].get("years_in_view") or []
+    yearly = f["yearly"]
+    if len(view) > 1 and len(yearly) > 1:
+        first, last = yearly[0], yearly[-1]
+        compare_text = t("ai.demo.span", start_year=first["year"], end_year=last["year"],
+                         total_start=first["total"]["text"], total_end=last["total"]["text"],
+                         ordinary_start=first["ordinary"]["text"], ordinary_end=last["ordinary"]["text"])
+    else:
+        compare_text = t("ai.demo.general", year=year, total=cur["total"]["text"], ordinary=cur["ordinary"]["text"], change=change)
     cards = detail.get("credit_card_gifts")
     repeat = detail.get("repeat_donors") or 0
     large = detail["large_gifts"]["count"]
     base = t("ai.demo.base", repeat=repeat, cards=cards, large=large) if cards is not None else t("ai.demo.base_nocard", repeat=repeat, large=large)
     c = f.get("concentration") or {}
     observations = [
-        {"key": "compare", "text": t("ai.demo.general", year=year, total=cur["total"]["text"], ordinary=cur["ordinary"]["text"], change=change)},
+        {"key": "compare", "text": compare_text},
         {"key": "base", "text": base},
         {"key": "concentration", "text": t("ai.demo.concentration",
                                             all=c.get("top_1_percent_of_donors_share_of_all_money", {}).get("text", "–"),

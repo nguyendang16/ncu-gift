@@ -208,6 +208,9 @@ def overview(df: pd.DataFrame, year: int, exceptional: float, large: float, scop
         shown = sorted({y for y in (year, prev_year) if y is not None})
         return [_snapshot(y) for y in shown]
 
+    def _kpi_by_year() -> list[dict]:
+        return [_snapshot(y) for y in ys]
+
     # monthly view: creation date is not receipt date, so rows whose date falls outside the report year are excluded
     cm = c.copy()
     valid = cm["date"].notna() & (cm["date"].dt.year == year)
@@ -243,7 +246,7 @@ def overview(df: pd.DataFrame, year: int, exceptional: float, large: float, scop
     return {
         "year": year, "prev_year": prev_year, "years": ys, "scope": scope,
         "scope_label": t("stats.scope_all") if scope == "all" else t("stats.scope_regular", threshold=exceptional),
-        "kpis": kpis, "kpi_compare": _kpi_compare(), "monthly": monthly,
+        "kpis": kpis, "kpi_compare": _kpi_compare(), "kpi_by_year": _kpi_by_year(), "monthly": monthly,
         "bands": _rows(bands, "band", lambda i: t(f"band.{int(i)}"), list(range(len(config.BANDS)))),
         "donor_classes": _rows(scoped, "donor_class", i18n.class_label, org.DONOR_CLASSES + ["unknown"]),
         "class_compare": class_compare(df, exceptional, scope),

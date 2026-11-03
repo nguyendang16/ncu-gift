@@ -357,6 +357,9 @@ def test_demo_mode_runs_end_to_end_without_a_key_and_is_labelled(client_, mock_i
     assert [o["key"] for o in i["observations"]] == ["compare", "base", "concentration", "accounts"]
     assert len(i["recommendations"]) == 5 and i["verification"]["ok"] is True and i["demo"] is True
     assert "主計室" in i["observations"][3]["text"] or "accounting" in i["observations"][3]["text"].lower()
+    span = client_.post("/api/ai/insights", json={"dataset_id": mock_id, "years": [2023, 2025]}, headers={"Accept-Language": "zh-TW"}).json()
+    assert span["verification"]["ok"] is True and "2023" in span["observations"][0]["text"] and "2025" in span["observations"][0]["text"]
+    assert "2024" not in span["observations"][0]["text"]
     zh = client_.post("/api/ai/ask", json={"dataset_id": mock_id, "question": "為什麼下降?"}, headers={"Accept-Language": "zh-TW"}).json()
     assert zh["answer"].startswith("【示範回答") and zh["verification"]["ok"] is True
     b = client_.post("/api/briefs", json={"dataset_id": mock_id, "project": "Physics: Scholarship", "use_ai": True}).json()

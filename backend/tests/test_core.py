@@ -103,6 +103,8 @@ def test_hero_key_indicators_match_the_tables(client, mock_id):
     assert earlier["kpis"]["prev_total"] != k["prev_total"]
     compared = client.get("/api/overview", params={"dataset_id": mock_id, "year": 2025, "compare_year": 2023}).json()
     assert [row["year"] for row in compared["kpi_compare"]] == [2023, 2025]
+    assert [row["year"] for row in compared["kpi_by_year"]] == compared["years"]
+    assert len(compared["kpi_by_year"]) > len(compared["kpi_compare"])
     current = next(row for row in compared["kpi_compare"] if row["year"] == 2025)
     earlier_row = next(row for row in compared["kpi_compare"] if row["year"] == 2023)
     assert math.isclose(current["total"], compared["kpis"]["total"])

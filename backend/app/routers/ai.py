@@ -162,7 +162,7 @@ def delete_all_conversations(session: Session = Depends(get_session)):
 @router.post("/insights", response_model=schemas.InsightsOut)
 def insights(body: schemas.InsightsIn, session: Session = Depends(get_session)):
     ds, df = frame_for(session, body.dataset_id)
-    return features.insights(session, ds.id, df, year=body.year, exceptional=exc_threshold(body.exceptional_threshold), large=_large(body.large_threshold))
+    return features.insights(session, ds.id, df, year=body.year, years=body.years, exceptional=exc_threshold(body.exceptional_threshold), large=_large(body.large_threshold))
 
 
 @router.post("/map-columns", response_model=schemas.MapOut)
