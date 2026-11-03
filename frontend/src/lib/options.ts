@@ -157,6 +157,7 @@ export function donutOption(rows: Breakdown[], fmt: Fmt) {
 
 export function heatmapOption(s: Season, fmt: Fmt) {
   const max = Math.max(...s.cells.map((c) => c.value), 1);
+  const money = (v: number) => (v ? fmt.axisMoney(v) : "0");
   return {
     animation: false, textStyle: { fontFamily: "inherit" }, grid: { left: 6, right: 12, top: 8, bottom: 52, containLabel: true },
     tooltip: { confine: true, formatter: (p: { value: [number, number, number] }) => `${s.years[p.value[1]]} · ${fmt.month(p.value[0] + 1)}<br/><b>${fmt.ntd(p.value[2])}</b>` },
@@ -164,7 +165,17 @@ export function heatmapOption(s: Season, fmt: Fmt) {
     yAxis: { type: "category" as const, data: s.years.map(String), axisLabel: axisText, inverse: true },
     visualMap: { min: 0, max, calculable: false, orient: "horizontal" as const, left: "center", bottom: 4, itemWidth: 14, itemHeight: 160, textStyle: { color: C.muted },
       inRange: { color: ["#f3efe8", "#d5e4dc", "#8aa396", "#2f5648"] }, formatter: (v: number) => fmt.axisMoney(Math.round(v)) },
-    series: [{ type: "heatmap" as const, data: s.cells.map((c) => [c.month - 1, s.years.indexOf(c.year), c.value]), itemStyle: { borderColor: "#fff", borderWidth: 3, borderRadius: 6 }
+    series: [{ type: "heatmap" as const, data: s.cells.map((c) => [c.month - 1, s.years.indexOf(c.year), c.value]),
+      itemStyle: { borderColor: "#fff", borderWidth: 3, borderRadius: 6 },
+      label: {
+        show: true, fontSize: 12, fontWeight: 650,
+        formatter: (p: { value: [number, number, number] }) => (p.value[2] / max >= 0.82 ? `{on|${money(p.value[2])}}` : `{ink|${money(p.value[2])}}`),
+        rich: {
+          ink: { color: "#2c2825", fontSize: 12, fontWeight: 650 },
+          on: { color: "#fffcf8", fontSize: 12, fontWeight: 650 },
+        },
+      },
+      labelLayout: { hideOverlap: true },
     }],
   };
 }

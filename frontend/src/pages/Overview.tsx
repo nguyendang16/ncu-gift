@@ -211,7 +211,7 @@ export default function Overview() {
 
   return (
     <>
-      <PageHeader title={t("overview.title")} question={t("q.overview")} desc={t("overview.desc")}>
+      <PageHeader className={`page-h-bar${view === "pick" && picked.length === 1 ? " has-note" : ""}`} title={t("overview.title")} question={t("q.overview")} desc={t("overview.desc")}>
         <div className="field">{t("overview.view")}
           <Seg label={t("overview.view")} value={view} onChange={setView} options={[
             { v: "all", l: t("overview.view_all") },
@@ -227,13 +227,13 @@ export default function Overview() {
           </label>
         )}
         {view === "pick" && (
-          <div className="field">{t("overview.pick_years")}
+          <div className="field years">{t("overview.pick_years")}
             <div className="year-picks" role="group" aria-label={t("overview.pick_years")}>
               {(ov.data?.years ?? []).map((v) => (
                 <button key={v} type="button" aria-pressed={picked.length === 0 || picked.includes(v)} onClick={() => toggleYear(v)}>{v}</button>
               ))}
             </div>
-            {picked.length === 1 && <p className="muted small">{t("overview.pick_one")}</p>}
+            {picked.length === 1 && <p className="muted small pick-note">{t("overview.pick_one")}</p>}
           </div>
         )}
         <div className="field">{t("overview.scope")}
@@ -291,19 +291,6 @@ export default function Overview() {
 
             {!comparing && <div style={{ marginBottom: 18 }}><AiSummary year={o.year} /></div>}
 
-            {!comparing && <Q q={hl}>{(cards) => cards.length > 0 && (
-              <Section title={t("sec.next")} desc={t("sec.next_desc")}>
-                <div className="hl-grid">
-                  {cards.map((c) => (
-                    <Link key={c.id} to={c.link} className={`hl ${c.tone}`}>
-                      <span className="ico"><Icon name={c.icon as IconName} size={22} /></span>
-                      <h3>{c.title}</h3><p>{c.text}</p><span className="go">{t("hl.open")} →</span>
-                    </Link>
-                  ))}
-                </div>
-              </Section>
-            )}</Q>}
-
             {comparing && kpiRows.length > 0 && (() => {
               const first = kpiRows[0];
               const last = kpiRows[kpiRows.length - 1];
@@ -341,6 +328,19 @@ export default function Overview() {
             })()}
 
             {comparing && <div style={{ marginBottom: 18 }}><AiSummary key={shown.join("-")} year={shown[shown.length - 1]} years={shown.length > 1 ? shown : undefined} /></div>}
+
+            <Q q={hl}>{(cards) => cards.length > 0 && (
+              <Section title={t("sec.next")} desc={t("sec.next_desc")}>
+                <div className="hl-grid">
+                  {cards.map((c) => {
+                    const dest = new URL(c.link || "/", "http://local");
+                    const opens = (dest.pathname !== "/" && dest.pathname !== loc.pathname) || (!!dest.hash && dest.hash !== loc.hash);
+                    const body = (<><span className="hl-head"><span className="ico"><Icon name={c.icon as IconName} size={22} /></span><h3>{c.title}</h3></span><p>{c.text}</p>{opens && <span className="go">{t("hl.open")} →</span>}</>);
+                    return opens ? <Link key={c.id} to={c.link} className={`hl ${c.tone}`}>{body}</Link> : <div key={c.id} className={`hl ${c.tone}`}>{body}</div>;
+                  })}
+                </div>
+              </Section>
+            )}</Q>
 
             {comparing && <Section id="numbers" title={t(view === "all" ? "sec.compare_all" : "sec.compare_pick")} desc={t(view === "all" ? "sec.compare_all_desc" : "sec.compare_pick_desc")}>
               {(() => {

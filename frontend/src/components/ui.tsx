@@ -55,9 +55,9 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
 
 /* ------------------------------------------------------------------ page chrome */
 /** The title only. The explanation sits behind the small "?" so the page stays calm; the one-line question chip is gone. */
-export function PageHeader({ title, desc, children }: { title: string; desc?: string; question?: string; children?: ReactNode }) {
+export function PageHeader({ title, desc, children, className = "" }: { title: string; desc?: string; question?: string; children?: ReactNode; className?: string }) {
   return (
-    <div className="page-h rise">
+    <div className={`page-h rise ${className}`.trim()}>
       <div>
         <h1>{title}{desc && <InfoTip text={desc} />}</h1>
       </div>
